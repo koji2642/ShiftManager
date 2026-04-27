@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>工事件名一覧</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
+  <style>
+    body {
+    font-family: "Zen Maru Gothic", sans-serif;
+    padding: 20px;
+    background: #f8f9fa;
+    }
+    body::before {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: repeating-linear-gradient(45deg,
+        #f8f9fa,
+        #f8f9fa 10px,
+        #e9ecef 10px,
+        #e9ecef 20px);
+    z-index: -1; pointer-events: none;
+    }
+    h2 { margin-bottom: 10px; }
+
+    /* テーブル */
+    .table-wrapper {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.1);
+    margin-top: 12px;
+    padding: 6px;
+    }
+    table {
+    border-collapse: collapse;
+    min-width: 1200px;
+    margin-bottom: 20px;
+    background: #fff;
+    }
+    th, td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    text-align: left;
+    font-size: 13px;
+    white-space: nowrap;
+    }
+    th { background: #007bff; color: #fff; }
+    .proj-dot {
+    display:inline-block;
+    width:14px; height:14px;
+    border-radius:50%;
+    margin-right:6px;
+    }
+
+    /* フォーム */
+    .form-wrapper {
+    background: #fff;
+    margin-top:12px;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 0 4px rgba(0,0,0,0.1);
+    }
+    #addProjectForm {
+    display: flex;
+    flex-direction: column;
+    }
+    #addProjectForm .inputs-scroll {
+    overflow-x: auto;
+    padding-bottom: 6px;
+    }
+    #addProjectForm .inputs {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 20px;
+    min-width: 1200px;
+    }
+    #addProjectForm label {
+    display: flex;
+    flex-direction: column;
+    font-size: 13px;
+    color: #333;
+    }
+    #addProjectForm .actions {
+    margin-top: 12px;
+    text-align: left;
+    }
+
+    /* ボタン */
+    .button { 
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: "Zen Maru Gothic";
+    background: linear-gradient(135deg, #b0c4de 0 30%, #e6e6fa 30% 100%);
+    color: #111;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+    }
+    .button:hover { filter: brightness(1.2); }
+    .button.update {
+    background: linear-gradient(135deg, #ff9999 0 30%, #ffcccc 30% 100%);
+    }
+
+</style>
+</head>
+<body>
+
+  <h2>工事件名一覧</h2>
+
+<div class="form-wrapper">
+  <form id="addProjectForm">
+    <div class="inputs-scroll">
+        <div class="inputs">
+            <label>工事番号:
+            <input type="text" name="project_no" required>
+            </label>
+            <label>契約番号:
+            <input type="text" name="contract_no" required>
+            </label>
+            <label>契約件名:
+            <input type="text" name="contract_name" required>
+            </label>
+            <label>着工日:
+            <input type="date" name="start_date">
+            </label>
+            <label>竣工日:
+            <input type="date" name="end_date">
+            </label>
+            <label>設計変更回数:
+            <input type="number" name="change_count" value="0">
+            </label>
+            <label>進捗率 [%]:
+            <input type="number" name="progress" value="0">
+            </label>
+            <label>担当者:
+            <input type="text" name="manager">
+            </label>
+            <label>協力会社:
+            <input type="text" name="partner">
+            </label>
+            <label>色:
+            <input type="color" name="color" value="#999999">
+            </label>
+        </div>
+        <div class="actions">
+        <button class="button" type="submit">追加</button>
+        </div>
+    </div>
+  </form>
+</div>
+
+  <div class="table-wrapper">
+    <table id="projectsTable">
+      <thead>
+        <tr>
+          <th>色</th>
+          <th>工事番号</th>
+          <th>契約番号</th>
+          <th>契約件名</th>
+          <th>着工日</th>
+          <th>竣工日</th>
+          <th>設計変更回数</th>
+          <th>進捗率 [%]</th>
+          <th>担当者</th>
+          <th>協力会社</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <p style="margin-top:20px;">
+    <a href="/shifts">← 勤務表に戻る</a>
+  </p>
+
+<script>
+let currentProjects = [];
+
+async function loadProjects() {
+  const res = await fetch("/api/projects");
+  const projects = await res.json();
+  currentProjects = projects;
+
+  const tbody = document.querySelector("#projectsTable tbody");
+  tbody.innerHTML = "";
+
+  projects.forEach(p => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span class="proj-dot" style="background:${p.color};"></span></td>
+      <td>${p.project_no}</td>
+      <td>${p.contract_no}</td>
+      <td>${p.contract_name}</td>
+      <td>${p.start_date || ""}</td>
+      <td>${p.end_date || ""}</td>
+      <td>${p.change_count}</td>
+      <td>${p.progress}</td>
+      <td>${p.manager || ""}</td>
+      <td>${p.partner || ""}</td>
+      <td class="actions">
+        <button class="button" data-action="edit" data-id="${p.id}">編集</button>
+        <button class="button" data-action="delete" data-id="${p.id}">削除</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ボタンクリックは「イベント委譲」で拾う（inline onclick をやめる）
+document.querySelector("#projectsTable tbody").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+
+  const id = Number(btn.dataset.id);
+  const action = btn.dataset.action;
+
+  if (action === "edit") {
+    startEdit(id);
+  } else if (action === "delete") {
+    await deleteProject(id);
+  }
+});
+
+async function deleteProject(id) {
+  if (!confirm("この工事件名を削除しますか？")) return;
+  try {
+    await fetch(`/api/projects/${id}`, { method: "DELETE" });
+    await loadProjects();
+  } catch (err) {
+    console.error(err);
+    alert("削除でエラーが発生しました。");
+  }
+}
+
+// 編集開始：API がなければ currentProjects から検索してフォームを埋める
+function startEdit(id) {
+  const p = currentProjects.find(x => x.id === id);
+  if (!p) {
+    alert("対象データが見つかりません。");
+    return;
+  }
+
+  const form = document.getElementById("addProjectForm");
+  form.project_no.value = p.project_no || "";
+  form.contract_no.value = p.contract_no || "";
+  form.contract_name.value = p.contract_name || "";
+  form.start_date.value = p.start_date || "";
+  form.end_date.value = p.end_date || "";
+  form.change_count.value = p.change_count ?? 0;
+  form.progress.value = p.progress ?? 0;
+  form.manager.value = p.manager || "";
+  form.partner.value = p.partner || "";
+  form.color.value = p.color || "#999999";
+
+  form.dataset.editId = String(id);
+  const btn = form.querySelector("button[type=submit]");
+  btn.textContent = "更新";
+  btn.classList.add("update");
+}
+
+document.getElementById("addProjectForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target;
+
+  const data = {
+    project_no: form.project_no.value,
+    contract_no: form.contract_no.value,
+    contract_name: form.contract_name.value,
+    start_date: form.start_date.value,
+    end_date: form.end_date.value,
+    change_count: form.change_count.value,
+    progress: form.progress.value,
+    manager: form.manager.value,
+    partner: form.partner.value,
+    color: form.color.value
+  };
+
+  try {
+    if (form.dataset.editId) {
+      // 更新
+      await fetch(`/api/projects/${form.dataset.editId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      const btn = form.querySelector("button[type=submit]");
+      btn.textContent = "追加";
+      btn.classList.remove("update");
+      delete form.dataset.editId;
+    } else {
+      // 新規
+      await fetch("/api/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    alert("送信でエラーが発生しました。");
+  }
+
+  form.reset();
+  await loadProjects();
+});
+
+window.addEventListener("DOMContentLoaded", loadProjects);
+
+// 万が一、グローバル呼び出しが必要な環境に備えて公開（保険）
+window.startEdit = startEdit;
+window.deleteProject = deleteProject;
+</script>
+
+</body>
+</html>

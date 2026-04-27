@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>ダッシュボード</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: "Zen Maru Gothic", sans-serif;
+      font-weight: 400;
+      font-style: normal;
+      background: #f8f9fa;
+      padding: 20px;
+    }
+
+    /* 背景装飾レイヤー */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: repeating-linear-gradient(45deg,
+          #f8f9fa,
+          #f8f9fa 10px,
+          #e9ecef 10px,
+          #e9ecef 20px);
+      opacity: 1;
+      /* 透過させたい場合は 0.3〜0.6 に調整 */
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    h2 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    h3 {
+      margin: 20px 0 6px 0;
+      color: #007bff;
+    }
+
+    select {
+      padding: 6px 10px;
+      font-size: 14px;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin-top: 6px;
+      background: #fff;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 6px 10px;
+      text-align: center;
+      font-size: 13px;
+    }
+
+    th {
+      background: #007bff;
+      color: #fff;
+    }
+
+    tr:nth-child(even) {
+      background: #f2f2f2;
+    }
+
+    #summaryArea {
+      background-color: #fff;
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 6px;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>ダッシュボード</h2>
+  <label for="fiscalYearSelect">年度を選択：</label>
+  <select id="fiscalYearSelect"></select>
+  <div id="summaryArea"></div>
+
+  <script>
+    async function getAvailableFiscalYears() {
+      try {
+        const res = await fetch("/load-months");
+        const months = await res.json();
+        const yearSet = new Set();
+
+        months.forEach(month => {
+          const [yearStr, monthStr] = month.split("-");
+          const year = parseInt(yearStr, 10);
+          const m = parseInt(monthStr, 10);
+          if (isNaN(year) || isNaN(m)) return;
+          const fiscalYear = m >= 4 ? year : year - 1;
+          yearSet.add(fiscalYear);
+        });
+
+        return Array.from(yearSet).sort();
+      } catch (err) {
+        console.error("年度一覧取得失敗:", err);
+        alert("年度の取得に失敗しました");
+        return [];
+      }
+    }
+
+    function getFiscalMonths(year) {
+      const months = [];
+      for (let m = 4; m <= 12; m++) {
+        months.push(`${year}-${String(m).padStart(2, "0")}`);
+      }
+      for (let m = 1; m <= 3; m++) {
+        months.push(`${year + 1}-${String(m).padStart(2, "0")}`);
+      }
+      return months;
+    }
+
+    async function loadFiscalYearData(year) {
+      const months = getFiscalMonths(year);
+      const types = ["特休", "法休", "年休"];
+      const summary = { "特休": {}, "法休": {}, "年休": {} };
+
+      for (const month of months) {
+        try {
+          const res = await fetch(`/load-shifts?month=${month}`);
+          const data = await res.json();
+
+          data.forEach(person => {
+            if (!person || !Array.isArray(person.shifts)) return;
+            types.forEach(type => {
+              if (!(person.name in summary[type])) {
+                summary[type][person.name] = 0;
+              }
+            });
+
+            person.shifts.forEach(shift => {
+              if (!shift || typeof shift !== "object" || !shift.type) return;
+              const t = shift.type;
+              if (types.includes(t)) {
+                summary[t][person.name] += 1;
+              }
+            });
+          });
+        } catch (err) {
+          console.warn(`月データ取得失敗: ${month}`, err);
+        }
+      }
+
+      renderSummary(summary, year);
+    }
+
+    function renderSummary(summary, year) {
+      const container = document.getElementById("summaryArea");
+      container.innerHTML = `<h3>${year}年度の休暇取得数</h3>`;
+
+      ["特休", "法休", "年休"].forEach(type => {
+        let html = `<h3>${type}</h3><table><tr><th>名前</th><th>${type}日数</th></tr>`;
+        Object.keys(summary[type]).sort().forEach(name => {
+          html += `<tr><td>${name}</td><td>${summary[type][name]}</td></tr>`;
+        });
+        html += "</table>";
+        container.innerHTML += html;
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      const fiscalYearSelect = document.getElementById("fiscalYearSelect");
+      const years = await getAvailableFiscalYears();
+
+      if (years.length === 0) {
+        fiscalYearSelect.innerHTML = `<option value="">年度なし</option>`;
+        return;
+      }
+
+      fiscalYearSelect.innerHTML = "";
+      years.forEach(y => {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.textContent = `${y}年度`;
+        fiscalYearSelect.appendChild(opt);
+      });
+
+      const currentFiscalYear = getCurrentFiscalYear();
+      const defaultYear = years.includes(currentFiscalYear) ? currentFiscalYear : years[0];
+      fiscalYearSelect.value = defaultYear;
+      await loadFiscalYearData(defaultYear);
+
+      fiscalYearSelect.addEventListener("change", async (e) => {
+        const selectedYear = parseInt(e.target.value);
+        if (!isNaN(selectedYear)) {
+          await loadFiscalYearData(selectedYear);
+        }
+      });
+    });
+
+    function getCurrentFiscalYear() {
+      const now = new Date();
+      return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+    }
+  </script>
+
+</body>
+
+</html>

@@ -1,0 +1,56 @@
+body {
+    background-image: url("back4.png");
+    background-color: #213C57;
+    background-size: cover;
+    font-family: "Zen Maru Gothic";
+    font-weight: 400; 
+    font-style: normal;
+    color: white;
+    margin:0;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+}    
+
+.home{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    font-size: 2.5em;
+
+}
+
+a,a:hover,a:visited{
+    color: inherit;
+    text-decoration: none;
+}
+
+.sidebar{
+    position: fixed;
+    width:14rem;
+    font-size: 1em;
+}
+
+.sidebar-menu{
+    position: fixed;
+    list-style: none;
+    left: 1.6rem;
+    bottom: 2rem;
+
+}
+
+.menu-item:hover{
+    color: pink;
+}
+
+@media (max-width: 1000px){
+    body{
+        background-color: #213c57;
+    }
+    
+    
+   .sidebar{
+	font-size:2em;
+    }
+}
