@@ -1,1260 +1,1824 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-  <meta charset="UTF-8" />
-  <title>シフト管理ツール</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --name-col-width: 160px;
-      --day-col-width: 90px;
-      --cell-height: auto;
-      --cell-line-height: 1.2;
-    }
-    html, body { height: 100%; margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: "Zen Maru Gothic", sans-serif;
-      padding: 20px;
-      position: relative;
-      background: none;
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      background: repeating-linear-gradient(45deg,
-          #f8f9fa,
-          #f8f9fa 10px,
-          #e9ecef 10px,
-          #e9ecef 20px);
-      z-index: -1; pointer-events: none;
-    }
-    h2 { margin-bottom: 10px; }
-    .legend { margin: 8px 5px 12px ; }
-    .legend span { display:inline-block; padding:4px 8px; margin:5px; border-radius:4px; font-size:13px; color:#333; }
-    .legend .office { background:#d1e7dd; }
-    .legend .outside { background: #f5f5f5; }
-    .legend .night { background:linear-gradient(135deg,#d8bfd8 70%,#d3d3d3 30%); }
-    .legend .site { background:#ffff99; }
-    .legend .office-site { background:linear-gradient(90deg,#d1e7dd 50%,#ffff99 50%); }
-    .legend .double { background:linear-gradient(135deg,#d1e7dd 0 50%,#d8bfd8 50% 80%,#d8d8d8 80% 100%); }
-    .legend .sp-leave { background:#cce5ff; color:#004085; }
-    .legend .le-leave { background:#f8d7da; color:#721c24; }
-    .legend .sp-holiday-night { background:linear-gradient(135deg,#cce5ff 0 50%,#d8bfd8 50% 80%,#d3d3d3 80% 100%); }
-    .legend .an-leave { background:#fff3cd; color:#856404; }
-    .legend .HalfDayOffInTheMorning { background:linear-gradient(90deg,#fff3cd 50%,#d1e7dd 50%); }
-    .legend .AfternoonHalfOff { background:linear-gradient(90deg,#d1e7dd 50%,#fff3cd 50%); }
-    .legend .off-duty { background:#d3d3d3; }
-    .legend .important { background: #ff3366; }
-
-   select {
-      font-family: "Zen Maru Gothic", sans-serif;
-      font-size: 14px;
-      padding: 6px 12px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      color: #333;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    select:hover {
-      border-color: #4a90e2;
-      box-shadow: 0 0 6px rgba(74,144,226,0.5);
-    }
-    button {
-      margin: 6px 6px 6px 0px;
-      padding: 6px 10px;
-      font-size: 13px;
-      font-family: "Zen Maru Gothic";
-      background: linear-gradient(135deg, #b0c4de 0 30%, #e6e6fa 30% 100%);
-      color: #111;
-      border-radius: 4px;
-      border: none;
-    }
-
-    #projectBtn {
-      background: linear-gradient(135deg, #cd5c5c 0 30%, #e6e6fa 30% 100%);
-    }
-
-    #dashboardBtn {
-      background: linear-gradient(135deg, #cd5c5c 0 30%, #e6e6fa 30% 100%);
-    }
-
-    button:hover {
-      filter: brightness(1.2);
-    }
-
-    .table-wrapper { overflow-x:auto; max-width:100%; background:#fff; padding:6px; border-radius:4px; }
-    #shiftTable { border-collapse:collapse; table-layout:fixed; min-width: calc(var(--name-col-width) + var(--day-col-width) * 31 + 80px); background:#fff; }
-    #shiftTable th, #shiftTable td {
-      border:1px solid #ccc; padding:6px; vertical-align:top; text-align:center; line-height:var(--cell-line-height); font-size:13px;
-      white-space:normal; overflow-wrap:break-word; word-break:break-word;
-    }
-    #shiftTable th.name, #shiftTable td.name {
-      width:var(--name-col-width); min-width:var(--name-col-width); max-width:var(--name-col-width);
-      text-align:left; padding-left:10px; position:sticky; left:0; z-index:3; background:#fafafa; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    }
-    #shiftTable th:not(.name), #shiftTable td:not(.name) {
-      width:var(--day-col-width); min-width:var(--day-col-width); max-width:var(--day-col-width);
-    }
-    #shiftTable thead th { position:sticky; top:0; z-index:5; background:#007bff; color:#fff; }
-
-    .office { background:#d1e7dd; }
-    .outside { background: #f5f5f5 }
-    .shift-night { background:linear-gradient(135deg,#d8bfd8 70%,#d3d3d3 30%); }
-    .shift-sp-leave { background:#cce5ff; color:#004085; }
-    .shift-le-holi { background:#f8d7da; color:#721c24; }
-    .shift-an-leave { background:#fff3cd; color:#856404; }
-    .shift-HalfDayOffInTheMorning { background:linear-gradient(90deg,#fff3cd 50%,#d1e7dd 50%); }
-    .shift-AfternoonDayOff { background:linear-gradient(90deg,#d1e7dd 50%,#fff3cd 50%); }
-    .shift-site { background:#ffff99; }
-    .shift-office-site { background:linear-gradient(90deg,#d1e7dd 50%,#ffff99 50%); }
-    .shift-sp-holiday-night { background:linear-gradient(135deg,#cce5ff 0 50%,#d8bfd8 50% 80%,#d3d3d3 80% 100%); }
-    .shift-double { background:linear-gradient(135deg,#d1e7dd 0 50%,#d8bfd8 50% 80%,#d3d3d3 80% 100%); color:#000; font-size:12px; }
-    .shift-off-duty { background:#d3d3d3; }
-    .shift-important { background: #ff3366; }
-    .small-work { display:block; font-size:11px; margin-top:4px; color:#333; text-align:left; }
-
-    #leaveSummary {
-      display: flex;                /* 横並び */
-      flex-direction: row;
-      align-items: flex-start;      /* 上揃え */
-      background: #fff;
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 6px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.1);
-
-      overflow-x: auto;             /* 横スクロールを許可 */
-      white-space: nowrap;          /* 折り返し禁止 */
-      gap: 50px;
-    }
-
-    #leaveTableContainer,
-    #projectTableContainer,
-    .cat-wrapper {
-      flex: 0 0 auto;               /* 幅を固定して縮まないようにする */
-      margin-right: 20px;
-    }
-
-    .cat-wrapper {
-      width: 120px;                 /* 猫画像の固定幅 */
-    }
-    .summary-cat {
-      width: 100%;
-      height: auto;
-    }
-
-/*=======モーダルレイアウト=======*/
-
-    /* 初期状態は非表示 */
-    .modal-overlay,
-    .modal {
-      display: none;
-    }
-
-
-    .modal input {
-      width: 100%;
-      padding: 8px 12px;
-      margin: 12px 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 14px;
-      box-sizing: border-box; /* ←これを追加 */
-    }
-
-
-    /* オーバーレイ（背景） */
-    .modal-overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4);
-      backdrop-filter: blur(4px);
-      z-index: 9998;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    /* 表示時 */
-    .modal-overlay.show {
-      display: block;   /* ←これが重要 */
-      opacity: 1;
-    }
-
-    /* モーダル本体 */
-    .modal {
-      position: fixed;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%) scale(0.9);
-      background: #fff;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-      z-index: 9999;
-      width: 340px;
-      font-family: "Zen Maru Gothic", sans-serif;
-      opacity: 0;
-      transition: all 0.3s ease;
-    }
-
-    /* 表示時のアニメーション */
-    .modal.show {
-      display: block;   /* ←これが重要 */
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-    }
-
-
-    /* タイトル */
-    .modal h3 {
-      margin-top: 0;
-      font-size: 18px;
-      color: #333;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 8px;
-    }
-
-    /* 入力欄 */
-    .modal input {
-      width: 100%;
-      padding: 8px 12px;
-      margin: 12px 0;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      font-size: 14px;
-    }
-
-    /* 候補リスト */
-    #suggestions {
-      list-style: none;
-      padding: 0;
-      margin: 8px 0;
-      max-height: 120px;
-      overflow-y: auto;
-    }
-
-    #suggestions li {
-      padding: 6px 10px;
-      cursor: pointer;
-      border-radius: 6px;
-      transition: background 0.2s;
-    }
-
-    #suggestions li:hover {
-      background: #f0f8ff;
-    }
-
-    /* ボタン配置 */
-    .button-group {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    .button-group button {
-      padding: 8px 14px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s ease;
-    }
-
-    .button-group .ok {
-      background: linear-gradient(135deg, #4a90e2, #007bff);
-      color: #fff;
-    }
-
-    .button-group .cancel {
-      background: #ccc;
-      color: #333;
-    }
-
-    .button-group button:hover {
-      filter: brightness(1.1);
-    }
-
-
-
-
-/*==============*/
-
-
-    /* 入力ダイアログの背景オーバーレイ */
-    .project-modal-overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.4); /* 半透明グレー */
-      z-index: 9998;
-    }
-
-    /* 入力ダイアログ本体 */
-    .project-modal {
-      position: fixed;
-      top: 30%;
-      left: 50%;
-      transform: translate(-50%, -30%);
-      background: #fff;
-      padding: 20px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      z-index: 9999;
-      width: 320px;
-      font-family: "Zen Maru Gothic", sans-serif;
-    }
-
-    /* ラベルとセレクト */
-    .project-modal label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
-      color: #333;
-    }
-
-    .project-modal select {
-      width: 100%;
-      padding: 6px 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      cursor: pointer;
-    }
-
-    /* ボタン配置 */
-    .project-modal .button-group {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    .project-modal button {
-      padding: 6px 12px;
-      font-size: 13px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-family: "Zen Maru Gothic", sans-serif;
-      transition: all 0.2s ease;
-    }
-
-    .project-modal button.ok {
-      background: #007bff;
-      color: #fff;
-    }
-
-    .project-modal button.cancel {
-      background: #ccc;
-      color: #333;
-    }
-
-    .project-modal button:hover {
-      filter: brightness(1.1);
-    }
-
-
-    .proj-dot {
-      display:inline-block;
-      width:12px; height:12px;
-      border-radius:50%;
-      margin-left:4px;
-    }
-
-    @media (max-width:480px) {
-      :root { --day-col-width:54px; --name-col-width:120px; --cell-line-height:1.1; }
-    }
-  </style>
-</head>
-
-<body>
-  <h2>ShiftManager</h2>
-
-  <!-- 月選択と操作ボタン -->
-  <select id="monthSelect"></select>
-  <button id="downloadBtn">編集結果をダウンロード</button>
-  <button id="addPersonBtn">新しい人を追加</button>
-  <button id="addNextMonthBtn">次の月を追加</button>
-  <button id="saveLocalBtn">端末に保存</button>
-  <button id="restoreLocalBtn">端末から復元</button>
-  <button id="clearLocalBtn">端末から削除</button>
-  <button id="printBtn">🖨️ 印刷</button>
-  <button id="uploadToServerBtn">サーバーに保存</button>
-  <button id="uploadJsonBtn">JSONをアップロード</button>
-  <input type="file" id="uploadJsonInput" style="display:none" accept=".json">
-  <button id="dashboardBtn">ダッシュボードへ</button>
-  <button id="projectBtn">工事件名一覧へ</button>
-
-
-<!-- モーダルのオーバーレイ -->
-<div id="userModalOverlay" class="modal-overlay"></div>
-
-<!-- モーダル本体 -->
-<div id="userModal" class="modal">
-  <h3>人を追加</h3>
-  <input type="text" id="userInput" placeholder="名前を入力">
-  <input type="hidden" id="userIdHidden">
-  <ul id="suggestions"></ul>
-  <div class="button-group">
-    <button id="userModalOk" class="ok">追加</button>
-    <button id="userModalCancel" class="cancel">キャンセル</button>
-  </div>
-</div>
-
-<div id="versionInfo"></div>
-
-  <div class="legend">
-    <span class="office">所内</span>
-    <span class="outside">外勤</span>
-    <span class="site">現場</span>
-    <span class="office-site">所内+現場</span>
-    <span class="night">夜勤</span>
-    <span class="double">日勤+夜勤</span>
-    <span class="sp-holiday-night">特休夜勤</span>
-    <span class="sp-leave">特休</span>
-    <span class="le-leave">法休</span>
-    <span class="an-leave">年休</span>
-    <span class="HalfDayOffInTheMorning">午前半休</span>
-    <span class="AfternoonHalfOff">午後半休</span>
-    <span class="off-duty">非番</span>
-    <span class="important">重要</span>
-  </div>
-
-
-  <div class="table-wrapper">
-    <table id="shiftTable" aria-label="シフト表">
-      <thead></thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <div id="leaveSummary">
-    <div id="leaveTableContainer"></div>
-    <div id="projectTableContainer"></div>
-    <div class="cat-wrapper">
-      <img src="/static/images/cat.png" alt="現場猫" class="summary-cat">
-    </div>
-  </div>
-
-  <script>
-  (function () {
-    // --- ヘルパー ---
-    function getCurrentMonthKey() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      return `${year}-${month}`;
-    }
-    function daysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
-    function escapeHtml(str) {
-      if (str === undefined || str === null) return "";
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-    }
-    function escapeAttr(str) { return escapeHtml(str).replace(/\n/g, " "); }
-
-    // client-side normalize: remove zero-width / BOM and trim
-    function clientNormalize(s) {
-      if (s === undefined || s === null) return "";
-      return String(s).replace(/[\u200b\u200c\u200d\uFEFF]/g, '').trim();
-    }
-
-  async function fetchProjectList() {
-    try {
-      const res = await fetch("/api/projects");
-      if (!res.ok) throw new Error("工事件名の取得に失敗");
-      return await res.json(); // [{id, project_no, contract_name, color}]
-    } catch (e) {
-      console.error(e);
-      return [];
-    }
-  }
-
-  async function selectProjectDialog(projects, currentProject) {
-    return new Promise(resolve => {
-      const overlay = document.createElement("div");
-      overlay.className = "project-modal-overlay";
-      document.body.appendChild(overlay);
-
-      const modal = document.createElement("div");
-      modal.className = "project-modal";
-
-      const label = document.createElement("label");
-      label.textContent = "工事件名を選択:";
-      modal.appendChild(label);
-
-      const select = document.createElement("select");
-
-      // 「なし」オプション（明示的にプロジェクトを外すとき）
-      const noneOpt = document.createElement("option");
-      noneOpt.value = ""; // 空文字は「プロジェクトなし」を表す
-      noneOpt.textContent = "なし（プロジェクトなし）";
-      if ((currentProject === undefined || currentProject === null || currentProject === "") ) noneOpt.selected = true;
-      select.appendChild(noneOpt);
-
-      // 実プロジェクトを追加
-      projects.forEach(p => {
-        const opt = document.createElement("option");
-        opt.value = p.project_no || "";
-        opt.textContent = p.contract_name || p.project_no || "(無題)";
-        if (p.project_no === currentProject) opt.selected = true;
-        select.appendChild(opt);
-      });
-      modal.appendChild(select);
-
-      const btnGroup = document.createElement("div");
-      btnGroup.className = "button-group";
-
-      const okBtn = document.createElement("button");
-      okBtn.textContent = "OK";
-      okBtn.className = "ok";
-      okBtn.onclick = () => {
-        document.body.removeChild(modal);
-        document.body.removeChild(overlay);
-        // 選択結果を返す。空文字は「プロジェクトなし」を意味する
-        resolve(select.value);
-      };
-      btnGroup.appendChild(okBtn);
-
-      const cancelBtn = document.createElement("button");
-      cancelBtn.textContent = "キャンセル";
-      cancelBtn.className = "cancel";
-      cancelBtn.onclick = () => {
-        document.body.removeChild(modal);
-        document.body.removeChild(overlay);
-        // キャンセルは null を返し「変更しない」
-        resolve(null);
-      };
-      btnGroup.appendChild(cancelBtn);
-
-      modal.appendChild(btnGroup);
-      document.body.appendChild(modal);
-    });
-  }
-
-
-
-
-    const LOCAL_KEY = "shift_manager_data_v1";
-    let monthKey = null;
-    window.shiftData = window.shiftData || {};
-    let isDirty = false;
-    let serverMonths = [];
-    let sel = null;
-    let _tempStatusTimer = null;
-
-    // safe fallback for saveToLocal
-    if (typeof saveToLocal !== "function") {
-      function saveToLocal() {
-        try {
-          const payload = { data: window.shiftData, lastEditedMonth: monthKey };
-          localStorage.setItem(LOCAL_KEY, JSON.stringify(payload));
-        } catch (e) { console.warn('saveToLocal fallback failed', e); }
-        return true;
-      }
-    }
-
-    function setTempStatus(msg, ms = 2000) {
-      let el = document.getElementById("tempStatus");
-      if (!el) {
-        el = document.createElement("div");
-        el.id = "tempStatus";
-        Object.assign(el.style, {
-          position: "fixed", right: "16px", top: "16px", padding: "8px 12px",
-          background: "rgba(0,0,0,0.7)", color: "#fff", borderRadius: "6px", fontSize: "13px", zIndex: 9999
-        });
-        document.body.appendChild(el);
-      }
-      el.textContent = msg;
-      if (_tempStatusTimer) { clearTimeout(_tempStatusTimer); _tempStatusTimer = null; }
-      _tempStatusTimer = setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el); _tempStatusTimer = null; }, ms);
-    }
-
-    function updateVersionDisplay(isoString) {
-      const el = document.getElementById("versionInfo");
-      if (!el || !isoString) return;
-      const dt = new Date(isoString);
-      const formatted = dt.toLocaleString("ja-JP", {
-        year: "numeric", month: "2-digit", day: "2-digit",
-        hour: "2-digit", minute: "2-digit"
-      });
-      el.textContent = `最終更新：${formatted}`;
-    }
-
-    // --- 描画ロジック ---
-    function renderLeaveSummary() {
-      const container = document.getElementById("leaveTableContainer");
-      if (!window.shiftData || !monthKey || !window.shiftData[monthKey]) {
-        if (container) container.innerHTML = "";
-        return;
-      }
-      const table = document.createElement('table');
-      table.style.borderCollapse = 'collapse';
-      table.style.marginTop = '6px';
-
-      const headRow = document.createElement('tr');
-      ['名前', '特休', '法休', '年休', '夜勤'].forEach(h => {
-        const th = document.createElement('th');
-        th.style.border = '1px solid #ccc';
-        th.style.padding = '4px';
-        th.style.background = '#d3d3d3';
-        th.textContent = h;
-        headRow.appendChild(th);
-      });
-      table.appendChild(headRow);
-
-      (window.shiftData[monthKey] || []).forEach(person => {
-        const tr = document.createElement('tr');
-        const nameTd = document.createElement('td');
-        nameTd.style.border = '1px solid #ccc';
-        nameTd.style.padding = '4px';
-        nameTd.textContent = clientNormalize(person.name);
-        tr.appendChild(nameTd);
-
-        let tokkyu = 0, houkyu = 0, nenkyu = 0, yakin = 0;
-        (person.shifts || []).forEach(shift => {
-          if (!shift || typeof shift !== 'object') return;
-          const t = clientNormalize(shift.type);
-          if (t === '特休' || t === '特休夜勤') tokkyu++;
-          if (t === '法休') houkyu++;
-          if (t === '年休') nenkyu++;
-          if (t === '午前半休' || t ==='午後半休') nenkyu = nenkyu+0.5;
-          if (t === '夜勤') yakin++;
-          if (t === '特休夜勤') yakin++;
-          if (t === '日勤+夜勤') yakin++;
-        });
-
-        [tokkyu, houkyu, nenkyu, yakin].forEach(n => {
-          const td = document.createElement('td');
-          td.style.border = '1px solid #ccc';
-          td.style.padding = '4px';
-          td.textContent = String(n);
-          tr.appendChild(td);
-        });
-
-        table.appendChild(tr);
-      });
-
-      container.innerHTML = '';
-      const title = document.createElement('strong');
-      title.textContent = `勤務の内訳（${monthKey}）`;
-      container.appendChild(title);
-      container.appendChild(document.createElement('br'));
-      container.appendChild(table);
-    }
-
-    function renderTable() {
-      if (!window.shiftData || !monthKey) return;
-      const data = window.shiftData[monthKey];
-      if (!Array.isArray(data)) { setTempStatus("表示するシフトデータがありません"); return; }
-
-      const [year, month] = monthKey.split("-").map(Number);
-      const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
-      const totalDays = daysInMonth(year, month);
-      const thead = document.querySelector("#shiftTable thead");
-      const tbody = document.querySelector("#shiftTable tbody");
-      if (!thead || !tbody) return;
-
-      let headRow1 = "<tr><th class='name' rowspan='2'>名前</th>";
-      let headRow2 = "<tr>";
-      for (let d = 1; d <= totalDays; d++) {
-        const date = new Date(year, month - 1, d);
-        const day = weekdays[date.getDay()];
-        headRow1 += `<th>${day}</th>`;
-        headRow2 += `<th>${d}</th>`;
-      }
-      headRow1 += `<th rowspan="2">削除</th></tr>`;
-      headRow2 += "</tr>";
-      thead.innerHTML = headRow1 + headRow2;
-
-      let bodyHTML = "";
-      data.forEach((person, rowIndex) => {
-        const nameSafe = escapeHtml(clientNormalize(person.name));
-        bodyHTML += "<tr>";
-        bodyHTML += `<td class="name" style="font-size: 16px;">${nameSafe}</td>`;
-        for (let d = 0; d < totalDays; d++) {
-          const rawShift = (person.shifts && person.shifts[d]) ? person.shifts[d] : { type: "休", work: "", project: "" };
-          const type = clientNormalize(rawShift.type) || "休";
-          const work = clientNormalize(rawShift.work) || "";
-          let cls = "";
-          if (type === "所内") cls = "office";
-          if (type === "外勤") cls = "outside";
-          else if (type === "夜勤") cls = "shift-night";
-          else if (type === "特休") cls = "shift-sp-leave";
-          else if (type === "法休") cls = "shift-le-holi";
-          else if (type === "年休") cls = "shift-an-leave";
-          else if (type === "午前半休") cls = "shift-HalfDayOffInTheMorning";
-          else if (type === "午後半休") cls = "shift-AfternoonDayOff";
-          else if (type === "現場") cls = "shift-site";
-          else if (type === "所内+現場") cls = "shift-office-site";
-          else if (type === "特休夜勤") cls = "shift-sp-holiday-night";
-          else if (type === "日勤+夜勤") cls = "shift-double";
-          else if (type === "非番") cls = "shift-off-duty";
-          else if (type === "重要") cls = "shift-important";
-
-          const rawProject = (rawShift.project || "").toString().trim();
-          const projectKey = rawProject;
-          const projectColor = projectKey && projectColorMap[projectKey] ? projectColorMap[projectKey] : "#999";
-          const dot = rawProject ? `<span class="proj-dot" style="background:${projectColor};"></span>` : "";
-
-
-
-          const workText = work ? `<span class="small-work">${escapeHtml(work)}</span>` : "";
-          const titleAttr = escapeAttr(`${type}${work ? " - " + work : ""}${rawProject ? " - " + rawProject : ""}`);
-
-
-          bodyHTML += `<td class="${cls}" data-row="${rowIndex}" data-day="${d}" title="${titleAttr}">${escapeHtml(type)} ${dot}${workText}</td>`;
-        }
-        bodyHTML += `<td><button class="deleteBtn" data-row="${rowIndex}">削除</button></td>`;
-        bodyHTML += "</tr>";
-      });
-      tbody.innerHTML = bodyHTML;
-
-      renderLeaveSummary();
-    }
-      let projectColorMap = {};
-
-    async function renderProjectSummary() {
-      const container = document.getElementById("projectTableContainer");
-      try {
-        const res = await fetch("/api/projects", { cache: "no-store" });
-        const projects = res.ok ? await res.json() : [];
-
-        // projectColorMap を初期化して複数キーでマッピング
-        projectColorMap = {};
-        projects.forEach(p => {
-          const color = p.color || "#999";
-          if (p.project_no) projectColorMap[String(p.project_no)] = color;
-          if (p.contract_no) projectColorMap[String(p.contract_no)] = color;
-          if (p.contract_name) projectColorMap[String(p.contract_name)] = color;
-        });
-
-        let html = "<strong>現場一覧</strong><br>";
-        html += "<table style='border-collapse:collapse; margin-top:6px; border:1px solid #ccc;'>";
-        html += "<thead><tr>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>色</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>工事番号</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>契約番号</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>契約件名</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>着工日</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>竣工日</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>設計変更回数</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>進捗率[%]</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>担当者</th>"
-          + "<th style='border:1px solid #ccc; padding:4px;'>協力会社</th>"
-          + "</tr></thead><tbody>";
-
-        projects.forEach(p => {
-          const color = p.color || "#999";
-          html += `<tr>
-            <td style="border:1px solid #ccc; padding:4px;"><span class="proj-dot" style="background:${color};"></span></td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.project_no || "")}</td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.contract_no || "")}</td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.contract_name || "")}</td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.start_date || "")}</td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.end_date || "")}</td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.change_count ?? "")}</td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.progress ?? "")}</td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.manager || "")}</td>
-            <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.partner || "")}</td>
-          </tr>`;
-        });
-
-        html += "</tbody></table>";
-        container.innerHTML = html;
-      } catch (e) {
-        console.warn("renderProjectSummary failed", e);
-        projectColorMap = {};
-        if (container) container.innerHTML = "";
-      }
-    }
-
-    // --- 初期化 ---
-    window.addEventListener("DOMContentLoaded", async () => {
-      sel = document.getElementById("monthSelect");
-      if (sel) sel.innerHTML = "";
-
-      // API_BASE (Electron環境対応)
-      if (window.electronEnv && typeof window.electronEnv.getFlaskBase === 'function') {
-        try { window.API_BASE = await window.electronEnv.getFlaskBase(); } catch (e) { window.API_BASE = 'https://koron.org' }
-      } else {
-        window.API_BASE = 'https://koron.org';
-      }
-
-      // /load-months
-      try {
-        const resMonths = await fetch(`${window.API_BASE}/load-months`);
-        if (resMonths.ok) serverMonths = await resMonths.json();
-        else { console.warn('/load-months returned', resMonths.status); serverMonths = []; }
-      } catch (e) { console.error("load-months failed", e); serverMonths = []; }
-
-      // /load-shifts を並列取得して select に追加
-      const validMonths = [];
-      const monthKeys = (serverMonths || []).sort();
-      if (monthKeys.length > 0 && sel) {
-        const promises = monthKeys.map(async (key) => {
-          try {
-            const r = await fetch(`${window.API_BASE}/load-shifts?month=${encodeURIComponent(key)}`);
-            if (!r.ok) return null;
-            const data = await r.json();
-            return (Array.isArray(data) && data.length > 0) ? { key, data } : null;
-          } catch (err) { console.warn('load-shifts failed for', key, err); return null; }
-        });
-        const results = await Promise.all(promises);
-        results.forEach(item => {
-          if (!item) return;
-          const key = item.key; const data = item.data;
-          window.shiftData = window.shiftData || {};
-          window.shiftData[key] = data;
-          const opt = document.createElement("option"); opt.value = key; opt.text = key; sel.appendChild(opt);
-          validMonths.push(key);
-        });
-      }
-
-      // ローカルがあればマージ優先
-      const local = (function loadFromLocal() {
-        try {
-          const raw = localStorage.getItem(LOCAL_KEY);
-          if (!raw) return null;
-          return JSON.parse(raw);
-        } catch (e) { console.error(e); return null; }
-      })();
-      if (local && local.data) {
-        window.shiftData = Object.assign({}, window.shiftData || {}, local.data);
-        const allKeys = Object.keys(window.shiftData).sort();
-        sel.innerHTML = "";
-        allKeys.forEach(k => { const o = document.createElement("option"); o.value = k; o.text = k; sel.appendChild(o); });
-        monthKey = local.lastEditedMonth && allKeys.includes(local.lastEditedMonth) ? local.lastEditedMonth : (allKeys[0] || getCurrentMonthKey());
-      } else {
-        monthKey = validMonths.includes(getCurrentMonthKey()) ? getCurrentMonthKey() : (validMonths[0] || getCurrentMonthKey());
-        if (sel) sel.value = monthKey;
-      }
-
-      // セレクト初期値（存在しない場合は追加）
-      if (!sel.querySelector(`option[value="${monthKey}"]`)) {
-        const opt = document.createElement("option"); opt.value = monthKey; opt.text = monthKey; sel.appendChild(opt);
-      }
-      sel.value = monthKey;
-
-      // 最終更新取得
-      try {
-        const metaRes = await fetch(`${window.API_BASE}/shifts-meta`, { credentials: 'same-origin' });
-        if (metaRes.ok) {
-          const meta = await metaRes.json();
-          if (meta && meta.savedAt) updateVersionDisplay(meta.savedAt);
-        } else console.warn('/shifts-meta returned', metaRes.status);
-      } catch (err) { console.warn('failed to fetch /shifts-meta', err); }
-
-      // --- モーダル開閉ヘルパー ---
-      function openUserModal() {
-        const overlay = document.getElementById("userModalOverlay");
-        const modal = document.getElementById("userModal");
-        overlay.classList.add("show");
-        modal.classList.add("show");
-        document.getElementById("userInput").value = "";
-        document.getElementById("userIdHidden").value = "";
-        document.getElementById("suggestions").innerHTML = "";
-      }
-
-      function closeUserModal() {
-        document.getElementById("userModalOverlay").classList.remove("show");
-        document.getElementById("userModal").classList.remove("show");
-      }
-
-      // --- イベント登録 ---
-      document.getElementById("addPersonBtn").addEventListener("click", openUserModal);
-      document.getElementById("userModalCancel").addEventListener("click", closeUserModal);
-      document.getElementById("userModalOverlay").addEventListener("click", closeUserModal);
-
-      // --- 入力で候補を検索 ---
-      const userInput = document.getElementById("userInput");
-
-      // 既存のイベントを削除してから登録（保険）
-      userInput.replaceWith(userInput.cloneNode(true));
-      const newInput = document.getElementById("userInput");
-
-      newInput.addEventListener("input", async function() {
-        const q = this.value.trim();
-        const list = document.getElementById("suggestions");
-        list.innerHTML = "";
-        if (q.length < 1) return;
-
-        const res = await fetch(`/search_user?q=${encodeURIComponent(q)}`);
-        const data = await res.json();
-
-        // 重複除去
-        const seen = new Set();
-        const unique = data.filter(u => {
-          if (seen.has(u.id)) return false;
-          seen.add(u.id);
-          return true;
-        });
-
-        if (unique.length === 0) {
-          const li = document.createElement("li");
-          li.textContent = `"${q}" を新規追加`;
-          li.onclick = async () => {
-            const addRes = await fetch("/add_user", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: q })
-            });
-            const newUser = await addRes.json();
-            newInput.value = newUser.name;
-            document.getElementById("userIdHidden").value = newUser.id;
-            list.innerHTML = "";
-          };
-          list.appendChild(li);
-        } else {
-          unique.forEach(u => {
-            const li = document.createElement("li");
-            li.textContent = u.name;
-            li.onclick = () => {
-              // すでに同じユーザーが追加されているか確認
-              const exists = window.shiftData[monthKey]?.some(user => user.userId == u.id);
-              if (exists) {
-                alert("このユーザーはすでに追加されています");
-                return;
-              }
-
-              newInput.value = u.name;
-              document.getElementById("userIdHidden").value = u.id;
-              list.innerHTML = "";
-            };
-            list.appendChild(li);
-          });
-
-        }
-      });
-
-
-      // --- OKボタンで追加 ---
-      document.getElementById("userModalOk").addEventListener("click", () => {
-        const userId = document.getElementById("userIdHidden").value;
-        const name = document.getElementById("userInput").value;
-        if (!userId || !name) return alert("候補を選択するか新規追加してください");
-
-        // すでに同じユーザーが存在するかチェック
-        const exists = window.shiftData[monthKey]?.some(u => u.userId == userId);
-        if (exists) {
-          alert("このユーザーはすでに追加されています");
-          closeUserModal();
-          return;
-        }
-
-        const [y, m] = monthKey.split("-").map(Number);
-        const totalDays = daysInMonth(y, m);
-        const newShifts = Array.from({ length: totalDays }, () => ({ type: "休", work: "" }));
-
-        if (!Array.isArray(window.shiftData[monthKey])) window.shiftData[monthKey] = [];
-        window.shiftData[monthKey].push({ userId, name, shifts: newShifts });
-
-        isDirty = true;
-        saveToLocal();
-        renderTable();
-
-        closeUserModal();
-      });
-
-      const uploadInput = document.getElementById("uploadJsonInput");
-      const uploadBtn = document.getElementById("uploadJsonBtn");
-
-      uploadBtn.addEventListener("click", () => {
-        uploadInput.click();
-      });
-
-      uploadInput.addEventListener("change", (e) => {
-        const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        if (!file.type.includes("json") && !file.name.toLowerCase().endsWith(".json")) {
-          alert("JSONファイルを選択してください");
-          return;
-        }
-        const reader = new FileReader();
-        reader.onload = () => {
-          let parsed;
-          try {
-            parsed = JSON.parse(reader.result);
-          } catch (err) {
-            alert("JSONのパースに失敗しました");
-            return;
-          }
-          if (!confirm("読み込んだJSONで現在のシフトデータを完全に上書きしますか？")) return;
-
-          // ✅ 完全上書き
-          window.shiftData = parsed;
-
-          // セレクト再構築
-          const keys = Object.keys(window.shiftData).sort();
-          sel.innerHTML = "";
-          keys.forEach(key => {
-            const opt = document.createElement("option");
-            opt.value = key;
-            opt.text = key;
-            sel.appendChild(opt);
-          });
-          monthKey = keys[0];
-          sel.value = monthKey;
-
-          renderTable();
-          saveToLocal();
-          setTempStatus("JSONを読み込みました");
-        };
-        reader.readAsText(file, "utf-8");
-      });
-
-
-      document.getElementById("addNextMonthBtn").addEventListener("click", () => {
-        const current = sel.value;
-        if (!current) return alert("月が選択されていません");
-
-        // 現在の年月を取得
-        const [y, m] = current.split("-").map(Number);
-        const nextDate = new Date(y, m); // 翌月
-        const nextYear = nextDate.getFullYear();
-        const nextMonth = String(nextDate.getMonth() + 1).padStart(2, "0");
-        const nextKey = `${nextYear}-${nextMonth}`;
-
-        // すでに存在するなら警告
-        if (window.shiftData[nextKey]) {
-          alert(`${nextKey} はすでに存在します`);
-          return;
-        }
-
-        // 新しい月データを作成（空のシフト）
-        const totalDays = daysInMonth(nextYear, nextMonth);
-        window.shiftData[nextKey] = [];
-
-        // select に追加
-        const opt = document.createElement("option");
-        opt.value = nextKey;
-        opt.text = nextKey;
-        sel.appendChild(opt);
-        sel.value = nextKey;
-
-        monthKey = nextKey;
-        isDirty = true;
-        saveToLocal();
-        renderTable();
-      });
-
-
-      document.getElementById("downloadBtn")?.addEventListener("click", () => {
-        if (!window.shiftData) return alert("JSONを読み込むか勤務表を作成してください");
-        const blob = new Blob([JSON.stringify(window.shiftData, null, 2)], { type: "application/json" });
-        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "shift_edited.json"; a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-      });
-
-      document.getElementById("saveLocalBtn")?.addEventListener("click", () => {
-        try {
-          const payload = { data: window.shiftData, lastEditedMonth: monthKey };
-          localStorage.setItem(LOCAL_KEY, JSON.stringify(payload));
-          setTempStatus("端末に保存しました");
-        } catch (e) { console.error(e); setTempStatus("端末への保存に失敗しました"); }
-      });
-
-      document.getElementById("restoreLocalBtn")?.addEventListener("click", () => {
-        try {
-          const raw = localStorage.getItem(LOCAL_KEY); if (!raw) return alert("ローカル保存データが見つかりません");
-          const localData = JSON.parse(raw);
-          window.shiftData = localData.data;
-          const allKeys = Object.keys(window.shiftData).sort();
-          sel.innerHTML = "";
-          allKeys.forEach(key => { const opt = document.createElement("option"); opt.value = key; opt.text = key; sel.appendChild(opt); });
-          monthKey = localData.lastEditedMonth && allKeys.includes(localData.lastEditedMonth) ? localData.lastEditedMonth : allKeys[0];
-          sel.value = monthKey; renderTable(); setTempStatus(`ローカルデータを「${monthKey}」に復元しました`);
-        } catch (e) { console.error(e); alert("復元に失敗しました"); }
-      });
-
-      document.getElementById("clearLocalBtn")?.addEventListener("click", () => {
-        if (!confirm("ローカルに保存されたデータを削除しますか？")) return;
-        localStorage.removeItem(LOCAL_KEY); setTempStatus("ローカルデータを削除しました");
-      });
-
-      document.getElementById("printBtn")?.addEventListener("click", () => {
-        const selectedMonth = document.getElementById("monthSelect").value;
-        if (!selectedMonth) { alert("月が選択されていません"); return; }
-        window.open(`/shifts/print?month=${selectedMonth}`, "_blank");
-      });
-
-      document.getElementById("dashboardBtn")?.addEventListener("click", () => {
-        window.location.href = "https://koron.org/shifts/dashboard";
-      });
-
-      document.getElementById("projectBtn")?.addEventListener("click", () => {
-        window.location.href = "https://koron.org/projects";
-      });
-
-      const saveBtn = document.getElementById("uploadToServerBtn");
-      if (saveBtn) {
-        saveBtn.addEventListener("click", async () => {
-          if (!window.shiftData) { alert("保存するデータがありません"); return; }
-          if (!confirm("現在のシフトデータをサーバーに保存しますか？\nデータが上書きされます。")) return;
-          saveBtn.disabled = true; setTempStatus("保存中...", 3000);
-          try {
-            const res = await fetch(`${window.API_BASE}/save-shifts`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(window.shiftData, null, 2),
-              credentials: "same-origin"
-            });
-            const text = await res.text();
-            if (!res.ok) throw new Error(text || `サーバーエラー ${res.status}`);
-            let msg = "保存しました";
-            try {
-              const j = text ? JSON.parse(text) : null;
-              if (j?.message) msg = j.message;
-              if (j?.savedAt) updateVersionDisplay(j.savedAt);
-            } catch (e) {}
-            setTempStatus(msg, 2000);
-            isDirty = false;
-            try {
-              const selected = document.getElementById('monthSelect')?.value; // ← 安全に選択月取得
-              const r2 = await fetch(`/load-shifts?month=${encodeURIComponent(selected)}`, { cache: 'no-store' });
-              if (r2.ok) {
-                window.shiftData[selected] = await r2.json();
-                await renderProjectSummary(); // ← 先に色マップを更新
-                renderTable();                // ← その後テーブルを描画
-              }
-            } catch (e) { console.warn('post-save refetch failed', e); }
-          } catch (err) {
-            console.error("save to server failed:", err); setTempStatus("保存に失敗しました", 3000); alert("保存に失敗しました。\nエラー: " + (err.message || err));
-          } finally { saveBtn.disabled = false; }
-        });
-      }
-
-      if (sel) {
-        sel.addEventListener("change", async () => {
-          monthKey = sel.value;
-          // 月切替でも最新のプロジェクト色を取得してからテーブル描画
-          await renderProjectSummary();
-          renderTable();
-        });
-      }
-
-
-      (function attachTableDelegatedHandler() {
-        const wrapper = document.querySelector('.table-wrapper') || document.getElementById('shiftTable');
-        if (!wrapper) return;
-
-        wrapper.addEventListener('click', async function (e) {
-          const del = e.target.closest('.deleteBtn');
-          if (del && wrapper.contains(del)) {
-            e.stopPropagation();
-            const r = Number(del.dataset.row);
-            const person = (window.shiftData && window.shiftData[monthKey] && window.shiftData[monthKey][r]) ? window.shiftData[monthKey][r] : null;
-            const name = person ? person.name : '';
-            if (!confirm(`社員「${clientNormalize(name)}」を削除しますか？`)) return;
-            if (Array.isArray(window.shiftData[monthKey])) window.shiftData[monthKey].splice(r, 1);
-            isDirty = true;
-            try { if (typeof saveToLocal === 'function') saveToLocal(); } catch (err) { console.warn('saveToLocal error', err); }
-            renderTable(); renderLeaveSummary();
-            return;
-          }
-
-          const td = e.target.closest('td[data-row][data-day]');
-          if (td && wrapper.contains(td)) {
-            if (td.classList.contains('name')) return;
-            const r = Number(td.dataset.row), d = Number(td.dataset.day);
-            if (Number.isNaN(r) || Number.isNaN(d)) return;
-
-            const oldShift = window.shiftData[monthKey][r].shifts[d] || { type: "休", work: "", project: "" };
-
-            // ステップ1: 勤務種別
-            const newType = prompt("勤務種別を入力:", oldShift.type);
-            if (newType === null) return;
-
-            // ステップ2: 業務内容
-            const newWork = prompt("仕事内容を入力:", oldShift.work);
-            if (newWork === null) return;
-
-            // ステップ3: 現場名選択（DBから取得）
-            const projects = await fetchProjectList();
-            // selectProjectDialog 実行後（例）
-            const selectedProject = await selectProjectDialog(projects, oldShift.project);
-            // selectedProject === null  -> キャンセル（変更しない）
-            // selectedProject === ""    -> 明示的に「プロジェクトなし」を選んだ（空にする）
-            if (selectedProject === null) return; // キャンセルは何もしない
-
-            // 保存（空文字もそのまま保存する。|| を使わない）
-            const prev = window.shiftData[monthKey][r].shifts[d] || {};
-            window.shiftData[monthKey][r].shifts[d] = {
-              type: newType,
-              work: newWork,
-              project: selectedProject
-            };
-            isDirty = true;                     // ← ここを追加：ローカル変更があることを示す
-            saveToLocal();
-            renderTable();
-          }
-        }, { passive: true });
-      })();
-
-      await renderProjectSummary();
-      renderTable();
-    }); // DOMContentLoaded end
-
-    // focus reload: re-fetch current month shifts from server
-    window.addEventListener('focus', async () => {
-      try {
-        if (isDirty) { // ← 追加：未保存のローカル変更があればサーバー再フェッチしない
-          console.log('FOCUS: skip refetch because of local dirty edits');
-          return;
-        }
-        const current = monthKey; if (!current) return;
-        const r = await fetch(`/load-shifts?month=${encodeURIComponent(current)}`, { cache: 'no-store' });
-        if (r.ok) {
-          const serverData = await r.json(); // [{name, shifts: [...]}, ...]
-          const currentData = window.shiftData[current] || [];
-
-          // 名前キーでインデックス化
-          const byName = new Map(currentData.map(p => [p.name || '', p]));
-          serverData.forEach(sp => {
-            const name = sp.name || '';
-            const local = byName.get(name);
-            if (!local) {
-              byName.set(name, sp);
-              return;
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+        <meta charset="UTF-8" />
+        <title>シフト管理ツール</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            :root {
+                --name-col-width: 160px;
+                --day-col-width: 90px;
+                --cell-height: auto;
+                --cell-line-height: 1.2;
             }
-            // day ごとにマージ（サーバー値優先、なければローカル保持）
-            const maxLen = Math.max((local.shifts || []).length, (sp.shifts || []).length);
-            const merged = Array.from({ length: maxLen }, (_, i) => {
-              const s = sp.shifts?.[i] || {};
-              const l = local.shifts?.[i] || {};
-              return {
-                type: (s.type !== undefined && s.type !== "") ? s.type : (l.type !== undefined ? l.type : "休"),
-                work: (s.work !== undefined) ? s.work : (l.work !== undefined ? l.work : ""),
-                // サーバーが空文字 "" を返した場合でもそれは「明示的に空」にした扱いにするか、
-                // ローカル優先にしたいかで分岐させる：
-                project: (s.project !== undefined && s.project !== "") ? s.project : (l.project || "")
-              };
-            });
+            html,
+            body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: "Zen Maru Gothic", sans-serif;
+                padding: 20px;
+                position: relative;
+                background: none;
+            }
+            body::before {
+                content: "";
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: repeating-linear-gradient(
+                    45deg,
+                    #f8f9fa,
+                    #f8f9fa 10px,
+                    #e9ecef 10px,
+                    #e9ecef 20px
+                );
+                z-index: -1;
+                pointer-events: none;
+            }
+            h2 {
+                margin-bottom: 10px;
+            }
+            .legend {
+                margin: 8px 5px 12px;
+            }
+            .legend span {
+                display: inline-block;
+                padding: 4px 8px;
+                margin: 5px;
+                border-radius: 4px;
+                font-size: 13px;
+                color: #333;
+            }
+            .legend .office {
+                background: #d1e7dd;
+            }
+            .legend .outside {
+                background: #f5f5f5;
+            }
+            .legend .night {
+                background: linear-gradient(135deg, #d8bfd8 70%, #d3d3d3 30%);
+            }
+            .legend .site {
+                background: #ffff99;
+            }
+            .legend .office-site {
+                background: linear-gradient(90deg, #d1e7dd 50%, #ffff99 50%);
+            }
+            .legend .double {
+                background: linear-gradient(
+                    135deg,
+                    #d1e7dd 0 50%,
+                    #d8bfd8 50% 80%,
+                    #d8d8d8 80% 100%
+                );
+            }
+            .legend .sp-leave {
+                background: #cce5ff;
+                color: #004085;
+            }
+            .legend .le-leave {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            .legend .sp-holiday-night {
+                background: linear-gradient(
+                    135deg,
+                    #cce5ff 0 50%,
+                    #d8bfd8 50% 80%,
+                    #d3d3d3 80% 100%
+                );
+            }
+            .legend .an-leave {
+                background: #fff3cd;
+                color: #856404;
+            }
+            .legend .HalfDayOffInTheMorning {
+                background: linear-gradient(90deg, #fff3cd 50%, #d1e7dd 50%);
+            }
+            .legend .AfternoonHalfOff {
+                background: linear-gradient(90deg, #d1e7dd 50%, #fff3cd 50%);
+            }
+            .legend .off-duty {
+                background: #d3d3d3;
+            }
+            .legend .important {
+                background: #ff3366;
+            }
 
-            byName.set(name, { name, shifts: merged });
+            select {
+                font-family: "Zen Maru Gothic", sans-serif;
+                font-size: 14px;
+                padding: 6px 12px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                color: #333;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
 
-          });
+            select:hover {
+                border-color: #4a90e2;
+                box-shadow: 0 0 6px rgba(74, 144, 226, 0.5);
+            }
+            button {
+                margin: 6px 6px 6px 0px;
+                padding: 6px 10px;
+                font-size: 13px;
+                font-family: "Zen Maru Gothic";
+                background: linear-gradient(
+                    135deg,
+                    #b0c4de 0 30%,
+                    #e6e6fa 30% 100%
+                );
+                color: #111;
+                border-radius: 4px;
+                border: none;
+            }
 
-          window.shiftData[current] = Array.from(byName.values());
-          if (document.getElementById('shiftTable')) renderTable();
-        }
+            #projectBtn {
+                background: linear-gradient(
+                    135deg,
+                    #cd5c5c 0 30%,
+                    #e6e6fa 30% 100%
+                );
+            }
 
-        console.log('FOCUS: monthKey=', current, 'shiftData keys=', Object.keys(window.shiftData || {}));
-      } catch (e) { console.warn('focus reload failed', e); }
-    });
+            #dashboardBtn {
+                background: linear-gradient(
+                    135deg,
+                    #cd5c5c 0 30%,
+                    #e6e6fa 30% 100%
+                );
+            }
 
+            button:hover {
+                filter: brightness(1.2);
+            }
 
-  })();
-  </script>
-</body>
+            .table-wrapper {
+                overflow-x: auto;
+                max-width: 100%;
+                background: #fff;
+                padding: 6px;
+                border-radius: 4px;
+            }
+            #shiftTable {
+                border-collapse: collapse;
+                table-layout: fixed;
+                min-width: calc(
+                    var(--name-col-width) + var(--day-col-width) * 31 + 80px
+                );
+                background: #fff;
+            }
+            #shiftTable th,
+            #shiftTable td {
+                border: 1px solid #ccc;
+                padding: 6px;
+                vertical-align: top;
+                text-align: center;
+                line-height: var(--cell-line-height);
+                font-size: 13px;
+                white-space: normal;
+                overflow-wrap: break-word;
+                word-break: break-word;
+            }
+            #shiftTable th.name,
+            #shiftTable td.name {
+                width: var(--name-col-width);
+                min-width: var(--name-col-width);
+                max-width: var(--name-col-width);
+                text-align: left;
+                padding-left: 10px;
+                position: sticky;
+                left: 0;
+                z-index: 3;
+                background: #fafafa;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            #shiftTable th:not(.name),
+            #shiftTable td:not(.name) {
+                width: var(--day-col-width);
+                min-width: var(--day-col-width);
+                max-width: var(--day-col-width);
+            }
+            #shiftTable thead th {
+                position: sticky;
+                top: 0;
+                z-index: 5;
+                background: #007bff;
+                color: #fff;
+            }
+
+            .office {
+                background: #d1e7dd;
+            }
+            .outside {
+                background: #f5f5f5;
+            }
+            .shift-night {
+                background: linear-gradient(135deg, #d8bfd8 70%, #d3d3d3 30%);
+            }
+            .shift-sp-leave {
+                background: #cce5ff;
+                color: #004085;
+            }
+            .shift-le-holi {
+                background: #f8d7da;
+                color: #721c24;
+            }
+            .shift-an-leave {
+                background: #fff3cd;
+                color: #856404;
+            }
+            .shift-HalfDayOffInTheMorning {
+                background: linear-gradient(90deg, #fff3cd 50%, #d1e7dd 50%);
+            }
+            .shift-AfternoonDayOff {
+                background: linear-gradient(90deg, #d1e7dd 50%, #fff3cd 50%);
+            }
+            .shift-site {
+                background: #ffff99;
+            }
+            .shift-office-site {
+                background: linear-gradient(90deg, #d1e7dd 50%, #ffff99 50%);
+            }
+            .shift-sp-holiday-night {
+                background: linear-gradient(
+                    135deg,
+                    #cce5ff 0 50%,
+                    #d8bfd8 50% 80%,
+                    #d3d3d3 80% 100%
+                );
+            }
+            .shift-double {
+                background: linear-gradient(
+                    135deg,
+                    #d1e7dd 0 50%,
+                    #d8bfd8 50% 80%,
+                    #d3d3d3 80% 100%
+                );
+                color: #000;
+                font-size: 12px;
+            }
+            .shift-off-duty {
+                background: #d3d3d3;
+            }
+            .shift-important {
+                background: #ff3366;
+            }
+            .small-work {
+                display: block;
+                font-size: 11px;
+                margin-top: 4px;
+                color: #333;
+                text-align: left;
+            }
+
+            #leaveSummary {
+                display: flex; /* 横並び */
+                flex-direction: row;
+                align-items: flex-start; /* 上揃え */
+                background: #fff;
+                padding: 12px;
+                margin-top: 10px;
+                border-radius: 6px;
+                box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+
+                overflow-x: auto; /* 横スクロールを許可 */
+                white-space: nowrap; /* 折り返し禁止 */
+                gap: 50px;
+            }
+
+            #leaveTableContainer,
+            #projectTableContainer,
+            .cat-wrapper {
+                flex: 0 0 auto; /* 幅を固定して縮まないようにする */
+                margin-right: 20px;
+            }
+
+            .cat-wrapper {
+                width: 120px; /* 猫画像の固定幅 */
+            }
+            .summary-cat {
+                width: 100%;
+                height: auto;
+            }
+
+            /*=======モーダルレイアウト=======*/
+
+            /* 初期状態は非表示 */
+            .modal-overlay,
+            .modal {
+                display: none;
+            }
+
+            .modal input {
+                width: 100%;
+                padding: 8px 12px;
+                margin: 12px 0;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                font-size: 14px;
+                box-sizing: border-box; /* ←これを追加 */
+            }
+
+            /* オーバーレイ（背景） */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.4);
+                backdrop-filter: blur(4px);
+                z-index: 9998;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            /* 表示時 */
+            .modal-overlay.show {
+                display: block; /* ←これが重要 */
+                opacity: 1;
+            }
+
+            /* モーダル本体 */
+            .modal {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) scale(0.9);
+                background: #fff;
+                padding: 24px;
+                border-radius: 12px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+                z-index: 9999;
+                width: 340px;
+                font-family: "Zen Maru Gothic", sans-serif;
+                opacity: 0;
+                transition: all 0.3s ease;
+            }
+
+            /* 表示時のアニメーション */
+            .modal.show {
+                display: block; /* ←これが重要 */
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            /* タイトル */
+            .modal h3 {
+                margin-top: 0;
+                font-size: 18px;
+                color: #333;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 8px;
+            }
+
+            /* 入力欄 */
+            .modal input {
+                width: 100%;
+                padding: 8px 12px;
+                margin: 12px 0;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                font-size: 14px;
+            }
+
+            /* 候補リスト */
+            #suggestions {
+                list-style: none;
+                padding: 0;
+                margin: 8px 0;
+                max-height: 120px;
+                overflow-y: auto;
+            }
+
+            #suggestions li {
+                padding: 6px 10px;
+                cursor: pointer;
+                border-radius: 6px;
+                transition: background 0.2s;
+            }
+
+            #suggestions li:hover {
+                background: #f0f8ff;
+            }
+
+            /* ボタン配置 */
+            .button-group {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+
+            .button-group button {
+                padding: 8px 14px;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.2s ease;
+            }
+
+            .button-group .ok {
+                background: linear-gradient(135deg, #4a90e2, #007bff);
+                color: #fff;
+            }
+
+            .button-group .cancel {
+                background: #ccc;
+                color: #333;
+            }
+
+            .button-group button:hover {
+                filter: brightness(1.1);
+            }
+
+            /*==============*/
+
+            /* 入力ダイアログの背景オーバーレイ */
+            .project-modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.4); /* 半透明グレー */
+                z-index: 9998;
+            }
+
+            /* 入力ダイアログ本体 */
+            .project-modal {
+                position: fixed;
+                top: 30%;
+                left: 50%;
+                transform: translate(-50%, -30%);
+                background: #fff;
+                padding: 20px;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                z-index: 9999;
+                width: 320px;
+                font-family: "Zen Maru Gothic", sans-serif;
+            }
+
+            /* ラベルとセレクト */
+            .project-modal label {
+                display: block;
+                margin-bottom: 8px;
+                font-size: 14px;
+                color: #333;
+            }
+
+            .project-modal select {
+                width: 100%;
+                padding: 6px 10px;
+                font-size: 14px;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                margin-bottom: 12px;
+                background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+                cursor: pointer;
+            }
+
+            /* ボタン配置 */
+            .project-modal .button-group {
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+
+            .project-modal button {
+                padding: 6px 12px;
+                font-size: 13px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-family: "Zen Maru Gothic", sans-serif;
+                transition: all 0.2s ease;
+            }
+
+            .project-modal button.ok {
+                background: #007bff;
+                color: #fff;
+            }
+
+            .project-modal button.cancel {
+                background: #ccc;
+                color: #333;
+            }
+
+            .project-modal button:hover {
+                filter: brightness(1.1);
+            }
+
+            .proj-dot {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                margin-left: 4px;
+            }
+
+            @media (max-width: 480px) {
+                :root {
+                    --day-col-width: 54px;
+                    --name-col-width: 120px;
+                    --cell-line-height: 1.1;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <h2>ShiftManager</h2>
+
+        <!-- 月選択と操作ボタン -->
+        <select id="monthSelect"></select>
+        <button id="downloadBtn">編集結果をダウンロード</button>
+        <button id="addPersonBtn">新しい人を追加</button>
+        <button id="addNextMonthBtn">次の月を追加</button>
+        <button id="saveLocalBtn">端末に保存</button>
+        <button id="restoreLocalBtn">端末から復元</button>
+        <button id="clearLocalBtn">端末から削除</button>
+        <button id="printBtn">🖨️ 印刷</button>
+        <button id="uploadToServerBtn">サーバーに保存</button>
+        <button id="uploadJsonBtn">JSONをアップロード</button>
+        <input
+            type="file"
+            id="uploadJsonInput"
+            style="display: none"
+            accept=".json"
+        />
+        <button id="dashboardBtn">ダッシュボードへ</button>
+        <button id="projectBtn">工事件名一覧へ</button>
+
+        <!-- モーダルのオーバーレイ -->
+        <div id="userModalOverlay" class="modal-overlay"></div>
+
+        <!-- モーダル本体 -->
+        <div id="userModal" class="modal">
+            <h3>人を追加</h3>
+            <input type="text" id="userInput" placeholder="名前を入力" />
+            <input type="hidden" id="userIdHidden" />
+            <ul id="suggestions"></ul>
+            <div class="button-group">
+                <button id="userModalOk" class="ok">追加</button>
+                <button id="userModalCancel" class="cancel">キャンセル</button>
+            </div>
+        </div>
+
+        <div id="versionInfo"></div>
+
+        <div class="legend">
+            <span class="office">所内</span>
+            <span class="outside">外勤</span>
+            <span class="site">現場</span>
+            <span class="office-site">所内+現場</span>
+            <span class="night">夜勤</span>
+            <span class="double">日勤+夜勤</span>
+            <span class="sp-holiday-night">特休夜勤</span>
+            <span class="sp-leave">特休</span>
+            <span class="le-leave">法休</span>
+            <span class="an-leave">年休</span>
+            <span class="HalfDayOffInTheMorning">午前半休</span>
+            <span class="AfternoonHalfOff">午後半休</span>
+            <span class="off-duty">非番</span>
+            <span class="important">重要</span>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="shiftTable" aria-label="シフト表">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div id="leaveSummary">
+            <div id="leaveTableContainer"></div>
+            <div id="projectTableContainer"></div>
+            <div class="cat-wrapper">
+                <img
+                    src="/static/images/cat.png"
+                    alt="現場猫"
+                    class="summary-cat"
+                />
+            </div>
+        </div>
+
+        <script>
+            (function () {
+                // --- ヘルパー ---
+                function getCurrentMonthKey() {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, "0");
+                    return `${year}-${month}`;
+                }
+                function daysInMonth(year, month) {
+                    return new Date(year, month, 0).getDate();
+                }
+                function escapeHtml(str) {
+                    if (str === undefined || str === null) return "";
+                    return String(str)
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#39;");
+                }
+                function escapeAttr(str) {
+                    return escapeHtml(str).replace(/\n/g, " ");
+                }
+
+                // client-side normalize: remove zero-width / BOM and trim
+                function clientNormalize(s) {
+                    if (s === undefined || s === null) return "";
+                    return String(s)
+                        .replace(/[\u200b\u200c\u200d\uFEFF]/g, "")
+                        .trim();
+                }
+
+                async function fetchProjectList() {
+                    try {
+                        const res = await fetch("/api/projects");
+                        if (!res.ok) throw new Error("工事件名の取得に失敗");
+                        return await res.json(); // [{id, project_no, contract_name, color}]
+                    } catch (e) {
+                        console.error(e);
+                        return [];
+                    }
+                }
+
+                async function selectProjectDialog(projects, currentProject) {
+                    return new Promise((resolve) => {
+                        const overlay = document.createElement("div");
+                        overlay.className = "project-modal-overlay";
+                        document.body.appendChild(overlay);
+
+                        const modal = document.createElement("div");
+                        modal.className = "project-modal";
+
+                        const label = document.createElement("label");
+                        label.textContent = "工事件名を選択:";
+                        modal.appendChild(label);
+
+                        const select = document.createElement("select");
+
+                        // 「なし」オプション（明示的にプロジェクトを外すとき）
+                        const noneOpt = document.createElement("option");
+                        noneOpt.value = ""; // 空文字は「プロジェクトなし」を表す
+                        noneOpt.textContent = "なし（プロジェクトなし）";
+                        if (
+                            currentProject === undefined ||
+                            currentProject === null ||
+                            currentProject === ""
+                        )
+                            noneOpt.selected = true;
+                        select.appendChild(noneOpt);
+
+                        // 実プロジェクトを追加
+                        projects.forEach((p) => {
+                            const opt = document.createElement("option");
+                            opt.value = p.project_no || "";
+                            opt.textContent =
+                                p.contract_name || p.project_no || "(無題)";
+                            if (p.project_no === currentProject)
+                                opt.selected = true;
+                            select.appendChild(opt);
+                        });
+                        modal.appendChild(select);
+
+                        const btnGroup = document.createElement("div");
+                        btnGroup.className = "button-group";
+
+                        const okBtn = document.createElement("button");
+                        okBtn.textContent = "OK";
+                        okBtn.className = "ok";
+                        okBtn.onclick = () => {
+                            document.body.removeChild(modal);
+                            document.body.removeChild(overlay);
+                            // 選択結果を返す。空文字は「プロジェクトなし」を意味する
+                            resolve(select.value);
+                        };
+                        btnGroup.appendChild(okBtn);
+
+                        const cancelBtn = document.createElement("button");
+                        cancelBtn.textContent = "キャンセル";
+                        cancelBtn.className = "cancel";
+                        cancelBtn.onclick = () => {
+                            document.body.removeChild(modal);
+                            document.body.removeChild(overlay);
+                            // キャンセルは null を返し「変更しない」
+                            resolve(null);
+                        };
+                        btnGroup.appendChild(cancelBtn);
+
+                        modal.appendChild(btnGroup);
+                        document.body.appendChild(modal);
+                    });
+                }
+
+                const LOCAL_KEY = "shift_manager_data_v1";
+                let monthKey = null;
+                window.shiftData = window.shiftData || {};
+                let isDirty = false;
+                let serverMonths = [];
+                let sel = null;
+                let _tempStatusTimer = null;
+
+                // safe fallback for saveToLocal
+                if (typeof saveToLocal !== "function") {
+                    function saveToLocal() {
+                        try {
+                            const payload = {
+                                data: window.shiftData,
+                                lastEditedMonth: monthKey,
+                            };
+                            localStorage.setItem(
+                                LOCAL_KEY,
+                                JSON.stringify(payload),
+                            );
+                        } catch (e) {
+                            console.warn("saveToLocal fallback failed", e);
+                        }
+                        return true;
+                    }
+                }
+
+                function setTempStatus(msg, ms = 2000) {
+                    let el = document.getElementById("tempStatus");
+                    if (!el) {
+                        el = document.createElement("div");
+                        el.id = "tempStatus";
+                        Object.assign(el.style, {
+                            position: "fixed",
+                            right: "16px",
+                            top: "16px",
+                            padding: "8px 12px",
+                            background: "rgba(0,0,0,0.7)",
+                            color: "#fff",
+                            borderRadius: "6px",
+                            fontSize: "13px",
+                            zIndex: 9999,
+                        });
+                        document.body.appendChild(el);
+                    }
+                    el.textContent = msg;
+                    if (_tempStatusTimer) {
+                        clearTimeout(_tempStatusTimer);
+                        _tempStatusTimer = null;
+                    }
+                    _tempStatusTimer = setTimeout(() => {
+                        if (el && el.parentNode) el.parentNode.removeChild(el);
+                        _tempStatusTimer = null;
+                    }, ms);
+                }
+
+                function updateVersionDisplay(isoString) {
+                    const el = document.getElementById("versionInfo");
+                    if (!el || !isoString) return;
+                    const dt = new Date(isoString);
+                    const formatted = dt.toLocaleString("ja-JP", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    });
+                    el.textContent = `最終更新：${formatted}`;
+                }
+
+                // --- 描画ロジック ---
+                function renderLeaveSummary() {
+                    const container = document.getElementById(
+                        "leaveTableContainer",
+                    );
+                    if (
+                        !window.shiftData ||
+                        !monthKey ||
+                        !window.shiftData[monthKey]
+                    ) {
+                        if (container) container.innerHTML = "";
+                        return;
+                    }
+                    const table = document.createElement("table");
+                    table.style.borderCollapse = "collapse";
+                    table.style.marginTop = "6px";
+
+                    const headRow = document.createElement("tr");
+                    ["名前", "特休", "法休", "年休", "夜勤"].forEach((h) => {
+                        const th = document.createElement("th");
+                        th.style.border = "1px solid #ccc";
+                        th.style.padding = "4px";
+                        th.style.background = "#d3d3d3";
+                        th.textContent = h;
+                        headRow.appendChild(th);
+                    });
+                    table.appendChild(headRow);
+
+                    (window.shiftData[monthKey] || []).forEach((person) => {
+                        const tr = document.createElement("tr");
+                        const nameTd = document.createElement("td");
+                        nameTd.style.border = "1px solid #ccc";
+                        nameTd.style.padding = "4px";
+                        nameTd.textContent = clientNormalize(person.name);
+                        tr.appendChild(nameTd);
+
+                        let tokkyu = 0,
+                            houkyu = 0,
+                            nenkyu = 0,
+                            yakin = 0;
+                        (person.shifts || []).forEach((shift) => {
+                            if (!shift || typeof shift !== "object") return;
+                            const t = clientNormalize(shift.type);
+                            if (t === "特休" || t === "特休夜勤") tokkyu++;
+                            if (t === "法休") houkyu++;
+                            if (t === "年休") nenkyu++;
+                            if (t === "午前半休" || t === "午後半休")
+                                nenkyu = nenkyu + 0.5;
+                            if (t === "夜勤") yakin++;
+                            if (t === "特休夜勤") yakin++;
+                            if (t === "日勤+夜勤") yakin++;
+                        });
+
+                        [tokkyu, houkyu, nenkyu, yakin].forEach((n) => {
+                            const td = document.createElement("td");
+                            td.style.border = "1px solid #ccc";
+                            td.style.padding = "4px";
+                            td.textContent = String(n);
+                            tr.appendChild(td);
+                        });
+
+                        table.appendChild(tr);
+                    });
+
+                    container.innerHTML = "";
+                    const title = document.createElement("strong");
+                    title.textContent = `勤務の内訳（${monthKey}）`;
+                    container.appendChild(title);
+                    container.appendChild(document.createElement("br"));
+                    container.appendChild(table);
+                }
+
+                function renderTable() {
+                    if (!window.shiftData || !monthKey) return;
+                    const data = window.shiftData[monthKey];
+                    if (!Array.isArray(data)) {
+                        setTempStatus("表示するシフトデータがありません");
+                        return;
+                    }
+
+                    const [year, month] = monthKey.split("-").map(Number);
+                    const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+                    const totalDays = daysInMonth(year, month);
+                    const thead = document.querySelector("#shiftTable thead");
+                    const tbody = document.querySelector("#shiftTable tbody");
+                    if (!thead || !tbody) return;
+
+                    let headRow1 = "<tr><th class='name' rowspan='2'>名前</th>";
+                    let headRow2 = "<tr>";
+                    for (let d = 1; d <= totalDays; d++) {
+                        const date = new Date(year, month - 1, d);
+                        const day = weekdays[date.getDay()];
+                        headRow1 += `<th>${day}</th>`;
+                        headRow2 += `<th>${d}</th>`;
+                    }
+                    headRow1 += `<th rowspan="2">削除</th></tr>`;
+                    headRow2 += "</tr>";
+                    thead.innerHTML = headRow1 + headRow2;
+
+                    let bodyHTML = "";
+                    data.forEach((person, rowIndex) => {
+                        const nameSafe = escapeHtml(
+                            clientNormalize(person.name),
+                        );
+                        bodyHTML += "<tr>";
+                        bodyHTML += `<td class="name" style="font-size: 16px;">${nameSafe}</td>`;
+                        for (let d = 0; d < totalDays; d++) {
+                            const rawShift =
+                                person.shifts && person.shifts[d]
+                                    ? person.shifts[d]
+                                    : { type: "休", work: "", project: "" };
+                            const type = clientNormalize(rawShift.type) || "休";
+                            const work = clientNormalize(rawShift.work) || "";
+                            let cls = "";
+                            if (type === "所内") cls = "office";
+                            if (type === "外勤") cls = "outside";
+                            else if (type === "夜勤") cls = "shift-night";
+                            else if (type === "特休") cls = "shift-sp-leave";
+                            else if (type === "法休") cls = "shift-le-holi";
+                            else if (type === "年休") cls = "shift-an-leave";
+                            else if (type === "午前半休")
+                                cls = "shift-HalfDayOffInTheMorning";
+                            else if (type === "午後半休")
+                                cls = "shift-AfternoonDayOff";
+                            else if (type === "現場") cls = "shift-site";
+                            else if (type === "所内+現場")
+                                cls = "shift-office-site";
+                            else if (type === "特休夜勤")
+                                cls = "shift-sp-holiday-night";
+                            else if (type === "日勤+夜勤") cls = "shift-double";
+                            else if (type === "非番") cls = "shift-off-duty";
+                            else if (type === "重要") cls = "shift-important";
+
+                            const rawProject = (rawShift.project || "")
+                                .toString()
+                                .trim();
+                            const projectKey = rawProject;
+                            const projectColor =
+                                projectKey && projectColorMap[projectKey]
+                                    ? projectColorMap[projectKey]
+                                    : "#999";
+                            const dot = rawProject
+                                ? `<span class="proj-dot" style="background:${projectColor};"></span>`
+                                : "";
+
+                            const workText = work
+                                ? `<span class="small-work">${escapeHtml(work)}</span>`
+                                : "";
+                            const titleAttr = escapeAttr(
+                                `${type}${work ? " - " + work : ""}${rawProject ? " - " + rawProject : ""}`,
+                            );
+
+                            bodyHTML += `<td class="${cls}" data-row="${rowIndex}" data-day="${d}" title="${titleAttr}">${escapeHtml(type)} ${dot}${workText}</td>`;
+                        }
+                        bodyHTML += `<td><button class="deleteBtn" data-row="${rowIndex}">削除</button></td>`;
+                        bodyHTML += "</tr>";
+                    });
+                    tbody.innerHTML = bodyHTML;
+
+                    renderLeaveSummary();
+                }
+                let projectColorMap = {};
+
+                async function renderProjectSummary() {
+                    const container = document.getElementById(
+                        "projectTableContainer",
+                    );
+                    try {
+                        const res = await fetch("/api/projects", {
+                            cache: "no-store",
+                        });
+                        const projects = res.ok ? await res.json() : [];
+
+                        // projectColorMap を初期化して複数キーでマッピング
+                        projectColorMap = {};
+                        projects.forEach((p) => {
+                            const color = p.color || "#999";
+                            if (p.project_no)
+                                projectColorMap[String(p.project_no)] = color;
+                            if (p.contract_no)
+                                projectColorMap[String(p.contract_no)] = color;
+                            if (p.contract_name)
+                                projectColorMap[String(p.contract_name)] =
+                                    color;
+                        });
+
+                        let html = "<strong>現場一覧</strong><br>";
+                        html +=
+                            "<table style='border-collapse:collapse; margin-top:6px; border:1px solid #ccc;'>";
+                        html +=
+                            "<thead><tr>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>色</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>工事番号</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>契約番号</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>契約件名</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>着工日</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>竣工日</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>設計変更回数</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>進捗率[%]</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>担当者</th>" +
+                            "<th style='border:1px solid #ccc; padding:4px;'>協力会社</th>" +
+                            "</tr></thead><tbody>";
+
+                        projects.forEach((p) => {
+                            const color = p.color || "#999";
+                            html += `<tr>
+                      <td style="border:1px solid #ccc; padding:4px;"><span class="proj-dot" style="background:${color};"></span></td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.project_no || "")}</td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.contract_no || "")}</td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.contract_name || "")}</td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.start_date || "")}</td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.end_date || "")}</td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.change_count ?? "")}</td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.progress ?? "")}</td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.manager || "")}</td>
+                      <td style="border:1px solid #ccc; padding:4px;">${escapeHtml(p.partner || "")}</td>
+                    </tr>`;
+                        });
+
+                        html += "</tbody></table>";
+                        container.innerHTML = html;
+                    } catch (e) {
+                        console.warn("renderProjectSummary failed", e);
+                        projectColorMap = {};
+                        if (container) container.innerHTML = "";
+                    }
+                }
+
+                // --- 初期化 ---
+                window.addEventListener("DOMContentLoaded", async () => {
+                    sel = document.getElementById("monthSelect");
+                    if (sel) sel.innerHTML = "";
+
+                    // API_BASE (Electron環境対応)
+                    if (
+                        window.electronEnv &&
+                        typeof window.electronEnv.getFlaskBase === "function"
+                    ) {
+                        try {
+                            window.API_BASE =
+                                await window.electronEnv.getFlaskBase();
+                        } catch (e) {
+                            window.API_BASE = "http://127.0.0.1:5000";
+                        }
+                    } else {
+                        window.API_BASE = "http://127.0.0.1:5000";
+                    }
+
+                    // /load-months
+                    try {
+                        const resMonths = await fetch(
+                            `${window.API_BASE}/load-months`,
+                        );
+                        if (resMonths.ok) serverMonths = await resMonths.json();
+                        else {
+                            console.warn(
+                                "/load-months returned",
+                                resMonths.status,
+                            );
+                            serverMonths = [];
+                        }
+                    } catch (e) {
+                        console.error("load-months failed", e);
+                        serverMonths = [];
+                    }
+
+                    // /load-shifts を並列取得して select に追加
+                    const validMonths = [];
+                    const monthKeys = (serverMonths || []).sort();
+                    if (monthKeys.length > 0 && sel) {
+                        const promises = monthKeys.map(async (key) => {
+                            try {
+                                const r = await fetch(
+                                    `${window.API_BASE}/load-shifts?month=${encodeURIComponent(key)}`,
+                                );
+                                if (!r.ok) return null;
+                                const data = await r.json();
+                                return Array.isArray(data) && data.length > 0
+                                    ? { key, data }
+                                    : null;
+                            } catch (err) {
+                                console.warn(
+                                    "load-shifts failed for",
+                                    key,
+                                    err,
+                                );
+                                return null;
+                            }
+                        });
+                        const results = await Promise.all(promises);
+                        results.forEach((item) => {
+                            if (!item) return;
+                            const key = item.key;
+                            const data = item.data;
+                            window.shiftData = window.shiftData || {};
+                            window.shiftData[key] = data;
+                            const opt = document.createElement("option");
+                            opt.value = key;
+                            opt.text = key;
+                            sel.appendChild(opt);
+                            validMonths.push(key);
+                        });
+                    }
+
+                    // ローカルがあればマージ優先
+                    const local = (function loadFromLocal() {
+                        try {
+                            const raw = localStorage.getItem(LOCAL_KEY);
+                            if (!raw) return null;
+                            return JSON.parse(raw);
+                        } catch (e) {
+                            console.error(e);
+                            return null;
+                        }
+                    })();
+                    if (local && local.data) {
+                        window.shiftData = Object.assign(
+                            {},
+                            window.shiftData || {},
+                            local.data,
+                        );
+                        const allKeys = Object.keys(window.shiftData).sort();
+                        sel.innerHTML = "";
+                        allKeys.forEach((k) => {
+                            const o = document.createElement("option");
+                            o.value = k;
+                            o.text = k;
+                            sel.appendChild(o);
+                        });
+                        monthKey =
+                            local.lastEditedMonth &&
+                            allKeys.includes(local.lastEditedMonth)
+                                ? local.lastEditedMonth
+                                : allKeys[0] || getCurrentMonthKey();
+                    } else {
+                        monthKey = validMonths.includes(getCurrentMonthKey())
+                            ? getCurrentMonthKey()
+                            : validMonths[0] || getCurrentMonthKey();
+                        if (sel) sel.value = monthKey;
+                    }
+
+                    // セレクト初期値（存在しない場合は追加）
+                    if (!sel.querySelector(`option[value="${monthKey}"]`)) {
+                        const opt = document.createElement("option");
+                        opt.value = monthKey;
+                        opt.text = monthKey;
+                        sel.appendChild(opt);
+                    }
+                    sel.value = monthKey;
+
+                    // 最終更新取得
+                    try {
+                        const metaRes = await fetch(
+                            `${window.API_BASE}/shifts-meta`,
+                            { credentials: "same-origin" },
+                        );
+                        if (metaRes.ok) {
+                            const meta = await metaRes.json();
+                            if (meta && meta.savedAt)
+                                updateVersionDisplay(meta.savedAt);
+                        } else
+                            console.warn(
+                                "/shifts-meta returned",
+                                metaRes.status,
+                            );
+                    } catch (err) {
+                        console.warn("failed to fetch /shifts-meta", err);
+                    }
+
+                    // --- モーダル開閉ヘルパー ---
+                    function openUserModal() {
+                        const overlay =
+                            document.getElementById("userModalOverlay");
+                        const modal = document.getElementById("userModal");
+                        overlay.classList.add("show");
+                        modal.classList.add("show");
+                        document.getElementById("userInput").value = "";
+                        document.getElementById("userIdHidden").value = "";
+                        document.getElementById("suggestions").innerHTML = "";
+                    }
+
+                    function closeUserModal() {
+                        document
+                            .getElementById("userModalOverlay")
+                            .classList.remove("show");
+                        document
+                            .getElementById("userModal")
+                            .classList.remove("show");
+                    }
+
+                    // --- イベント登録 ---
+                    document
+                        .getElementById("addPersonBtn")
+                        .addEventListener("click", openUserModal);
+                    document
+                        .getElementById("userModalCancel")
+                        .addEventListener("click", closeUserModal);
+                    document
+                        .getElementById("userModalOverlay")
+                        .addEventListener("click", closeUserModal);
+
+                    // --- 入力で候補を検索 ---
+                    const userInput = document.getElementById("userInput");
+
+                    // 既存のイベントを削除してから登録（保険）
+                    userInput.replaceWith(userInput.cloneNode(true));
+                    const newInput = document.getElementById("userInput");
+
+                    newInput.addEventListener("input", async function () {
+                        const q = this.value.trim();
+                        const list = document.getElementById("suggestions");
+                        list.innerHTML = "";
+                        if (q.length < 1) return;
+
+                        const res = await fetch(
+                            `/search_user?q=${encodeURIComponent(q)}`,
+                        );
+                        const data = await res.json();
+
+                        // 重複除去
+                        const seen = new Set();
+                        const unique = data.filter((u) => {
+                            if (seen.has(u.id)) return false;
+                            seen.add(u.id);
+                            return true;
+                        });
+
+                        if (unique.length === 0) {
+                            const li = document.createElement("li");
+                            li.textContent = `"${q}" を新規追加`;
+                            li.onclick = async () => {
+                                const addRes = await fetch("/add_user", {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({ name: q }),
+                                });
+                                const newUser = await addRes.json();
+                                newInput.value = newUser.name;
+                                document.getElementById("userIdHidden").value =
+                                    newUser.id;
+                                list.innerHTML = "";
+                            };
+                            list.appendChild(li);
+                        } else {
+                            unique.forEach((u) => {
+                                const li = document.createElement("li");
+                                li.textContent = u.name;
+                                li.onclick = () => {
+                                    // すでに同じユーザーが追加されているか確認
+                                    const exists = window.shiftData[
+                                        monthKey
+                                    ]?.some((user) => user.userId == u.id);
+                                    if (exists) {
+                                        alert(
+                                            "このユーザーはすでに追加されています",
+                                        );
+                                        return;
+                                    }
+
+                                    newInput.value = u.name;
+                                    document.getElementById(
+                                        "userIdHidden",
+                                    ).value = u.id;
+                                    list.innerHTML = "";
+                                };
+                                list.appendChild(li);
+                            });
+                        }
+                    });
+
+                    // --- OKボタンで追加 ---
+                    document
+                        .getElementById("userModalOk")
+                        .addEventListener("click", () => {
+                            const userId =
+                                document.getElementById("userIdHidden").value;
+                            const name =
+                                document.getElementById("userInput").value;
+                            if (!userId || !name)
+                                return alert(
+                                    "候補を選択するか新規追加してください",
+                                );
+
+                            // すでに同じユーザーが存在するかチェック
+                            const exists = window.shiftData[monthKey]?.some(
+                                (u) => u.userId == userId,
+                            );
+                            if (exists) {
+                                alert("このユーザーはすでに追加されています");
+                                closeUserModal();
+                                return;
+                            }
+
+                            const [y, m] = monthKey.split("-").map(Number);
+                            const totalDays = daysInMonth(y, m);
+                            const newShifts = Array.from(
+                                { length: totalDays },
+                                () => ({ type: "休", work: "" }),
+                            );
+
+                            if (!Array.isArray(window.shiftData[monthKey]))
+                                window.shiftData[monthKey] = [];
+                            window.shiftData[monthKey].push({
+                                userId,
+                                name,
+                                shifts: newShifts,
+                            });
+
+                            isDirty = true;
+                            saveToLocal();
+                            renderTable();
+
+                            closeUserModal();
+                        });
+
+                    const uploadInput =
+                        document.getElementById("uploadJsonInput");
+                    const uploadBtn = document.getElementById("uploadJsonBtn");
+
+                    uploadBtn.addEventListener("click", () => {
+                        uploadInput.click();
+                    });
+
+                    uploadInput.addEventListener("change", (e) => {
+                        const file = e.target.files && e.target.files[0];
+                        if (!file) return;
+                        if (
+                            !file.type.includes("json") &&
+                            !file.name.toLowerCase().endsWith(".json")
+                        ) {
+                            alert("JSONファイルを選択してください");
+                            return;
+                        }
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            let parsed;
+                            try {
+                                parsed = JSON.parse(reader.result);
+                            } catch (err) {
+                                alert("JSONのパースに失敗しました");
+                                return;
+                            }
+                            if (
+                                !confirm(
+                                    "読み込んだJSONで現在のシフトデータを完全に上書きしますか？",
+                                )
+                            )
+                                return;
+
+                            // ✅ 完全上書き
+                            window.shiftData = parsed;
+
+                            // セレクト再構築
+                            const keys = Object.keys(window.shiftData).sort();
+                            sel.innerHTML = "";
+                            keys.forEach((key) => {
+                                const opt = document.createElement("option");
+                                opt.value = key;
+                                opt.text = key;
+                                sel.appendChild(opt);
+                            });
+                            monthKey = keys[0];
+                            sel.value = monthKey;
+
+                            renderTable();
+                            saveToLocal();
+                            setTempStatus("JSONを読み込みました");
+                        };
+                        reader.readAsText(file, "utf-8");
+                    });
+
+                    document
+                        .getElementById("addNextMonthBtn")
+                        .addEventListener("click", () => {
+                            const current = sel.value;
+                            if (!current)
+                                return alert("月が選択されていません");
+
+                            // 現在の年月を取得
+                            const [y, m] = current.split("-").map(Number);
+                            const nextDate = new Date(y, m); // 翌月
+                            const nextYear = nextDate.getFullYear();
+                            const nextMonth = String(
+                                nextDate.getMonth() + 1,
+                            ).padStart(2, "0");
+                            const nextKey = `${nextYear}-${nextMonth}`;
+
+                            // すでに存在するなら警告
+                            if (window.shiftData[nextKey]) {
+                                alert(`${nextKey} はすでに存在します`);
+                                return;
+                            }
+
+                            // 新しい月データを作成（空のシフト）
+                            const totalDays = daysInMonth(nextYear, nextMonth);
+                            window.shiftData[nextKey] = [];
+
+                            // select に追加
+                            const opt = document.createElement("option");
+                            opt.value = nextKey;
+                            opt.text = nextKey;
+                            sel.appendChild(opt);
+                            sel.value = nextKey;
+
+                            monthKey = nextKey;
+                            isDirty = true;
+                            saveToLocal();
+                            renderTable();
+                        });
+
+                    document
+                        .getElementById("downloadBtn")
+                        ?.addEventListener("click", () => {
+                            if (!window.shiftData)
+                                return alert(
+                                    "JSONを読み込むか勤務表を作成してください",
+                                );
+                            const blob = new Blob(
+                                [JSON.stringify(window.shiftData, null, 2)],
+                                { type: "application/json" },
+                            );
+                            const a = document.createElement("a");
+                            a.href = URL.createObjectURL(blob);
+                            a.download = "shift_edited.json";
+                            a.click();
+                            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+                        });
+
+                    document
+                        .getElementById("saveLocalBtn")
+                        ?.addEventListener("click", () => {
+                            try {
+                                const payload = {
+                                    data: window.shiftData,
+                                    lastEditedMonth: monthKey,
+                                };
+                                localStorage.setItem(
+                                    LOCAL_KEY,
+                                    JSON.stringify(payload),
+                                );
+                                setTempStatus("端末に保存しました");
+                            } catch (e) {
+                                console.error(e);
+                                setTempStatus("端末への保存に失敗しました");
+                            }
+                        });
+
+                    document
+                        .getElementById("restoreLocalBtn")
+                        ?.addEventListener("click", () => {
+                            try {
+                                const raw = localStorage.getItem(LOCAL_KEY);
+                                if (!raw)
+                                    return alert(
+                                        "ローカル保存データが見つかりません",
+                                    );
+                                const localData = JSON.parse(raw);
+                                window.shiftData = localData.data;
+                                const allKeys = Object.keys(
+                                    window.shiftData,
+                                ).sort();
+                                sel.innerHTML = "";
+                                allKeys.forEach((key) => {
+                                    const opt =
+                                        document.createElement("option");
+                                    opt.value = key;
+                                    opt.text = key;
+                                    sel.appendChild(opt);
+                                });
+                                monthKey =
+                                    localData.lastEditedMonth &&
+                                    allKeys.includes(localData.lastEditedMonth)
+                                        ? localData.lastEditedMonth
+                                        : allKeys[0];
+                                sel.value = monthKey;
+                                renderTable();
+                                setTempStatus(
+                                    `ローカルデータを「${monthKey}」に復元しました`,
+                                );
+                            } catch (e) {
+                                console.error(e);
+                                alert("復元に失敗しました");
+                            }
+                        });
+
+                    document
+                        .getElementById("clearLocalBtn")
+                        ?.addEventListener("click", () => {
+                            if (
+                                !confirm(
+                                    "ローカルに保存されたデータを削除しますか？",
+                                )
+                            )
+                                return;
+                            localStorage.removeItem(LOCAL_KEY);
+                            setTempStatus("ローカルデータを削除しました");
+                        });
+
+                    document
+                        .getElementById("printBtn")
+                        ?.addEventListener("click", () => {
+                            const selectedMonth =
+                                document.getElementById("monthSelect").value;
+                            if (!selectedMonth) {
+                                alert("月が選択されていません");
+                                return;
+                            }
+                            window.open(
+                                `/shifts/print?month=${selectedMonth}`,
+                                "_blank",
+                            );
+                        });
+
+                    document
+                        .getElementById("dashboardBtn")
+                        ?.addEventListener("click", () => {
+                            window.location.href =
+                                "http://127.0.0.1:5000/shifts/dashboard";
+                        });
+
+                    document
+                        .getElementById("projectBtn")
+                        ?.addEventListener("click", () => {
+                            window.location.href =
+                                "http://127.0.0.1:5000/projects";
+                        });
+
+                    const saveBtn =
+                        document.getElementById("uploadToServerBtn");
+                    if (saveBtn) {
+                        saveBtn.addEventListener("click", async () => {
+                            if (!window.shiftData) {
+                                alert("保存するデータがありません");
+                                return;
+                            }
+                            if (
+                                !confirm(
+                                    "現在のシフトデータをサーバーに保存しますか？\nデータが上書きされます。",
+                                )
+                            )
+                                return;
+                            saveBtn.disabled = true;
+                            setTempStatus("保存中...", 3000);
+                            try {
+                                const res = await fetch(
+                                    `${window.API_BASE}/save-shifts`,
+                                    {
+                                        method: "POST",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify(
+                                            window.shiftData,
+                                            null,
+                                            2,
+                                        ),
+                                        credentials: "same-origin",
+                                    },
+                                );
+                                const text = await res.text();
+                                if (!res.ok)
+                                    throw new Error(
+                                        text || `サーバーエラー ${res.status}`,
+                                    );
+                                let msg = "保存しました";
+                                try {
+                                    const j = text ? JSON.parse(text) : null;
+                                    if (j?.message) msg = j.message;
+                                    if (j?.savedAt)
+                                        updateVersionDisplay(j.savedAt);
+                                } catch (e) {}
+                                setTempStatus(msg, 2000);
+                                isDirty = false;
+                                try {
+                                    const selected =
+                                        document.getElementById(
+                                            "monthSelect",
+                                        )?.value; // ← 安全に選択月取得
+                                    const r2 = await fetch(
+                                        `/load-shifts?month=${encodeURIComponent(selected)}`,
+                                        { cache: "no-store" },
+                                    );
+                                    if (r2.ok) {
+                                        window.shiftData[selected] =
+                                            await r2.json();
+                                        await renderProjectSummary(); // ← 先に色マップを更新
+                                        renderTable(); // ← その後テーブルを描画
+                                    }
+                                } catch (e) {
+                                    console.warn("post-save refetch failed", e);
+                                }
+                            } catch (err) {
+                                console.error("save to server failed:", err);
+                                setTempStatus("保存に失敗しました", 3000);
+                                alert(
+                                    "保存に失敗しました。\nエラー: " +
+                                        (err.message || err),
+                                );
+                            } finally {
+                                saveBtn.disabled = false;
+                            }
+                        });
+                    }
+
+                    if (sel) {
+                        sel.addEventListener("change", async () => {
+                            monthKey = sel.value;
+                            // 月切替でも最新のプロジェクト色を取得してからテーブル描画
+                            await renderProjectSummary();
+                            renderTable();
+                        });
+                    }
+
+                    (function attachTableDelegatedHandler() {
+                        const wrapper =
+                            document.querySelector(".table-wrapper") ||
+                            document.getElementById("shiftTable");
+                        if (!wrapper) return;
+
+                        wrapper.addEventListener(
+                            "click",
+                            async function (e) {
+                                const del = e.target.closest(".deleteBtn");
+                                if (del && wrapper.contains(del)) {
+                                    e.stopPropagation();
+                                    const r = Number(del.dataset.row);
+                                    const person =
+                                        window.shiftData &&
+                                        window.shiftData[monthKey] &&
+                                        window.shiftData[monthKey][r]
+                                            ? window.shiftData[monthKey][r]
+                                            : null;
+                                    const name = person ? person.name : "";
+                                    if (
+                                        !confirm(
+                                            `社員「${clientNormalize(name)}」を削除しますか？`,
+                                        )
+                                    )
+                                        return;
+                                    if (
+                                        Array.isArray(
+                                            window.shiftData[monthKey],
+                                        )
+                                    )
+                                        window.shiftData[monthKey].splice(r, 1);
+                                    isDirty = true;
+                                    try {
+                                        if (typeof saveToLocal === "function")
+                                            saveToLocal();
+                                    } catch (err) {
+                                        console.warn("saveToLocal error", err);
+                                    }
+                                    renderTable();
+                                    renderLeaveSummary();
+                                    return;
+                                }
+
+                                const td = e.target.closest(
+                                    "td[data-row][data-day]",
+                                );
+                                if (td && wrapper.contains(td)) {
+                                    if (td.classList.contains("name")) return;
+                                    const r = Number(td.dataset.row),
+                                        d = Number(td.dataset.day);
+                                    if (Number.isNaN(r) || Number.isNaN(d))
+                                        return;
+
+                                    const oldShift = window.shiftData[monthKey][
+                                        r
+                                    ].shifts[d] || {
+                                        type: "休",
+                                        work: "",
+                                        project: "",
+                                    };
+
+                                    // ステップ1: 勤務種別
+                                    const newType = prompt(
+                                        "勤務種別を入力:",
+                                        oldShift.type,
+                                    );
+                                    if (newType === null) return;
+
+                                    // ステップ2: 業務内容
+                                    const newWork = prompt(
+                                        "仕事内容を入力:",
+                                        oldShift.work,
+                                    );
+                                    if (newWork === null) return;
+
+                                    // ステップ3: 現場名選択（DBから取得）
+                                    const projects = await fetchProjectList();
+                                    // selectProjectDialog 実行後（例）
+                                    const selectedProject =
+                                        await selectProjectDialog(
+                                            projects,
+                                            oldShift.project,
+                                        );
+                                    // selectedProject === null  -> キャンセル（変更しない）
+                                    // selectedProject === ""    -> 明示的に「プロジェクトなし」を選んだ（空にする）
+                                    if (selectedProject === null) return; // キャンセルは何もしない
+
+                                    // 保存（空文字もそのまま保存する。|| を使わない）
+                                    const prev =
+                                        window.shiftData[monthKey][r].shifts[
+                                            d
+                                        ] || {};
+                                    window.shiftData[monthKey][r].shifts[d] = {
+                                        type: newType,
+                                        work: newWork,
+                                        project: selectedProject,
+                                    };
+                                    isDirty = true; // ← ここを追加：ローカル変更があることを示す
+                                    saveToLocal();
+                                    renderTable();
+                                }
+                            },
+                            { passive: true },
+                        );
+                    })();
+
+                    await renderProjectSummary();
+                    renderTable();
+                }); // DOMContentLoaded end
+
+                // focus reload: re-fetch current month shifts from server
+                window.addEventListener("focus", async () => {
+                    try {
+                        if (isDirty) {
+                            // ← 追加：未保存のローカル変更があればサーバー再フェッチしない
+                            console.log(
+                                "FOCUS: skip refetch because of local dirty edits",
+                            );
+                            return;
+                        }
+                        const current = monthKey;
+                        if (!current) return;
+                        const r = await fetch(
+                            `/load-shifts?month=${encodeURIComponent(current)}`,
+                            { cache: "no-store" },
+                        );
+                        if (r.ok) {
+                            const serverData = await r.json(); // [{name, shifts: [...]}, ...]
+                            const currentData = window.shiftData[current] || [];
+
+                            // 名前キーでインデックス化
+                            const byName = new Map(
+                                currentData.map((p) => [p.name || "", p]),
+                            );
+                            serverData.forEach((sp) => {
+                                const name = sp.name || "";
+                                const local = byName.get(name);
+                                if (!local) {
+                                    byName.set(name, sp);
+                                    return;
+                                }
+                                // day ごとにマージ（サーバー値優先、なければローカル保持）
+                                const maxLen = Math.max(
+                                    (local.shifts || []).length,
+                                    (sp.shifts || []).length,
+                                );
+                                const merged = Array.from(
+                                    { length: maxLen },
+                                    (_, i) => {
+                                        const s = sp.shifts?.[i] || {};
+                                        const l = local.shifts?.[i] || {};
+                                        return {
+                                            type:
+                                                s.type !== undefined &&
+                                                s.type !== ""
+                                                    ? s.type
+                                                    : l.type !== undefined
+                                                      ? l.type
+                                                      : "休",
+                                            work:
+                                                s.work !== undefined
+                                                    ? s.work
+                                                    : l.work !== undefined
+                                                      ? l.work
+                                                      : "",
+                                            // サーバーが空文字 "" を返した場合でもそれは「明示的に空」にした扱いにするか、
+                                            // ローカル優先にしたいかで分岐させる：
+                                            project:
+                                                s.project !== undefined &&
+                                                s.project !== ""
+                                                    ? s.project
+                                                    : l.project || "",
+                                        };
+                                    },
+                                );
+
+                                byName.set(name, { name, shifts: merged });
+                            });
+
+                            window.shiftData[current] = Array.from(
+                                byName.values(),
+                            );
+                            if (document.getElementById("shiftTable"))
+                                renderTable();
+                        }
+
+                        console.log(
+                            "FOCUS: monthKey=",
+                            current,
+                            "shiftData keys=",
+                            Object.keys(window.shiftData || {}),
+                        );
+                    } catch (e) {
+                        console.warn("focus reload failed", e);
+                    }
+                });
+            })();
+        </script>
+    </body>
 </html>

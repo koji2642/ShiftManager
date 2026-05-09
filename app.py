@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, jsonify, make_response
 import os, sqlite3, json, calendar
 from datetime import datetime
 from weasyprint import HTML
-//テスト
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 DB_PATH = os.path.join(app.root_path, 'data', 'shifts.db')
