@@ -5,7 +5,7 @@ from weasyprint import HTML
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 DB_PATH = os.path.join(app.root_path, 'data', 'shifts.db')
-/*fff*/
+
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
