@@ -5,6 +5,7 @@ import sqlite3
 from datetime import datetime
 from logging import debug
 
+import webview
 from flask import Flask, jsonify, make_response, render_template, request
 from pyfladesk import init_gui
 from weasyprint import HTML
@@ -446,4 +447,7 @@ def add_user():
     return jsonify({"id": cur.lastrowid, "name": name})
 
 
-app.run(host="127.0.0.1", port=5000, use_reloader=False)
+# app.run(host="127.0.0.1", port=5000, use_reloader=False)
+if __name__ == "__main__":
+    webview.create_window("ShiftManager", "http://127.0.0.1:5000")
+    webview.start(app.run)
