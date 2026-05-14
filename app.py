@@ -2,11 +2,11 @@ import calendar
 import json
 import os
 import sqlite3
-import threading
 from datetime import datetime
+from logging import debug
 
-import eel
 from flask import Flask, jsonify, make_response, render_template, request
+from pyfladesk import init_gui
 from weasyprint import HTML
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
@@ -61,7 +61,7 @@ def group_by_user(rows, days):
 # --- ルート定義 ---
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("shifts/shifts.html")
 
 
 @app.route("/API")
@@ -447,20 +447,8 @@ def add_user():
     return jsonify({"id": cur.lastrowid, "name": name})
 
 
-def run_flask():
-    app.run(port=5000, debug=False, use_reloader=False)
-
-
 if __name__ == "__main__":
-    # 1. バックグラウンドでFlaskを起動
-    threading.Thread(target=run_flask, daemon=True).start()
+    app.debug = False
 
-    # 2. Eelを初期化（ダミーの空フォルダを指定。ファイルは何も置かなくてOK）
-    # Eelの仕様上、init自体は必要なため、空のフォルダ名（例: 'web'）を指定します
-    if not os.path.exists("web"):
-        os.makedirs("web")
-    eel.init("web")
-
-    # 3. 💡 Eelの起動URLにFlaskのURLを直接指定する
-    # これにより、Flaskの画面がそのままChromeの独立ウィンドウで開きます
-    eel.start("http://127.0.0.1:5000/", mode="default", size=(1000, 800))
+    init_gui(app)
+# app.run(host="127.0.0.1", port=5000, use_reloader=False)
