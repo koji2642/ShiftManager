@@ -624,6 +624,7 @@
         </div>
 
         <script>
+            //シフト表に現在の月のシフトを表示するための関数
             (function () {
                 // --- ヘルパー ---
                 function getCurrentMonthKey() {
@@ -632,9 +633,12 @@
                     const month = String(now.getMonth() + 1).padStart(2, "0");
                     return `${year}-${month}`;
                 }
+
+                //その月が何日終わりなのかを判定
                 function daysInMonth(year, month) {
                     return new Date(year, month, 0).getDate();
                 }
+                //HTML内で特別な意味を持つ文字を安全な文字列（実体参照）に変換する
                 function escapeHtml(str) {
                     if (str === undefined || str === null) return "";
                     return String(str)
@@ -655,7 +659,7 @@
                         .replace(/[\u200b\u200c\u200d\uFEFF]/g, "")
                         .trim();
                 }
-
+                //プロジェクト表を取得
                 async function fetchProjectList() {
                     try {
                         const res = await fetch("/api/projects");
@@ -666,7 +670,7 @@
                         return [];
                     }
                 }
-
+                //新規入力シフトにプロジェクトを設定
                 async function selectProjectDialog(projects, currentProject) {
                     return new Promise((resolve) => {
                         const overlay = document.createElement("div");
@@ -791,7 +795,7 @@
                         _tempStatusTimer = null;
                     }, ms);
                 }
-
+                //最終更新日を取得
                 function updateVersionDisplay(isoString) {
                     const el = document.getElementById("versionInfo");
                     if (!el || !isoString) return;
