@@ -739,15 +739,14 @@
                     });
                 }
 
-            
                 //ブラウザへの保存処理をする関数
-                
+
                 const LOCAL_KEY = "shift_manager_data_v1";
                 //現在編集している「年月のキー」を保持する変数
                 let monthKey = null;
                 //すでにデータが存在すればそれを使い、なければ空のオブジェクト {} を作成して、シフトデータをメモリ上に保持
                 window.shiftData = window.shiftData || {};
-                //「保存されていない変更があるか」を表すフラグ(編集フラグ) 変更があるとtrue 
+                //「保存されていない変更があるか」を表すフラグ(編集フラグ) 変更があるとtrue
                 let isDirty = false;
                 //サーバー側に保存されている「データの存在する年月」の一覧を管理する配列
                 let serverMonths = [];
@@ -774,7 +773,7 @@
                         return true;
                     }
                 }
-                
+
                 //保存時のステータス表示をする関数
                 function setTempStatus(msg, ms = 2000) {
                     let el = document.getElementById("tempStatus");
@@ -853,8 +852,7 @@
                         const nameTd = document.createElement("td");
                         nameTd.style.border = "1px solid #ccc";
                         nameTd.style.padding = "4px";
-                        nameTd.textContent
-                            = clientNormalize(person.name);
+                        nameTd.textContent = clientNormalize(person.name);
                         tr.appendChild(nameTd);
 
                         let tokkyu = 0,
@@ -892,10 +890,9 @@
                     container.appendChild(document.createElement("br"));
                     container.appendChild(table);
                 }
-                
+
                 //「シフト表（カレンダー）」を画面に生成・描画する関数です。
                 function renderTable() {
-
                     //シフトデータや選択月（monthKey）の存在をチェック
                     if (!window.shiftData || !monthKey) return;
                     const data = window.shiftData[monthKey];
@@ -905,7 +902,7 @@
                     }
 
                     //曜日、日付欄生成
-                    
+
                     const [year, month] = monthKey.split("-").map(Number);
                     const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
                     //daysInMonth関数でその月の日数、曜日を割り出す
@@ -932,7 +929,6 @@
                     //スタッフごとのシフト行作成
                     let bodyHTML = "";
                     data.forEach((person, rowIndex) => {
-
                         //clientNormalizeを挟むことで、データに「目に見えない空白」などが混入していても、正しく文字を判定できるようにしている
                         const nameSafe = escapeHtml(
                             clientNormalize(person.name),
@@ -943,10 +939,10 @@
                         for (let d = 0; d < totalDays; d++) {
                             //対象のスタッフ（person）の指定された日（d）のシフトデータが存在するかをチェックし、存在しない場合は安全な初期値を代入する
                             const rawShift =
-                                person.shifts && person.shifts[d]//シフトデータがあるか？
+                                person.shifts && person.shifts[d] //シフトデータがあるか？
                                     ? person.shifts[d] //あればそのデータをそのまま使う
                                     : { type: "休", work: "", project: "" }; //なければ"休"及び""で埋める
-                            const type = clientNormalize(rawShift.type) || "休"; 
+                            const type = clientNormalize(rawShift.type) || "休";
                             const work = clientNormalize(rawShift.work) || "";
 
                             //勤務の振り分け
@@ -1070,7 +1066,6 @@
 
                 // --- 初期化 ---
                 window.addEventListener("DOMContentLoaded", async () => {
-
                     //月ドロップダウンをリセットし空にする
                     sel = document.getElementById("monthSelect");
                     if (sel) sel.innerHTML = "";
@@ -1124,9 +1119,9 @@
                                 if (!r.ok) return null;
                                 const data = await r.json();
                                 //データの整合チェック
-                                return Array.isArray(data) && data.length > 0//リストの配列の形をしているか、またデータが空でないか
+                                return Array.isArray(data) && data.length > 0 //リストの配列の形をしているか、またデータが空でないか
                                     ? { key, data }
-                                    : null;//合格の場合key、dataに代入、不合格の場合nullを代入
+                                    : null; //合格の場合key、dataに代入、不合格の場合nullを代入
                             } catch (err) {
                                 console.warn(
                                     "load-shifts failed for",
@@ -1168,7 +1163,9 @@
                         }
                     })();
 
-                    //ローカル（自分のブラウザ）に保存されている下書きとサーバーから取得したデータを合流させ、最終的にどの月を表示するかを決定する
+                    /*ローカル（自分のブラウザ）に保存されている下書きとサーバーから取得したデータを合流させ、
+                     最終的にどの月を表示するかを決定する*/
+
                     //データの合流（マージ）
                     if (local && local.data) {
                         window.shiftData = Object.assign(
@@ -1178,7 +1175,9 @@
                         );
 
                         //プルダウンの再構築
-                        //合流が終わったら、一度プルダウンをリセットして、全データ（サーバー＋ローカル）から月のリストを五十音（日付）順に並べ直して表示
+
+                        /*合流が終わったら、一度プルダウンをリセットして、全データ（サーバー＋ローカル）
+                        から月のリストを五十音（日付）順に並べ直して表示*/
                         const allKeys = Object.keys(window.shiftData).sort();
                         sel.innerHTML = "";
                         allKeys.forEach((k) => {
@@ -1232,6 +1231,7 @@
                     }
 
                     // --- モーダル開閉ヘルパー ---
+
                     //モーダルの表示
                     function openUserModal() {
                         const overlay =
@@ -1266,25 +1266,35 @@
                         .getElementById("userModalOverlay")
                         .addEventListener("click", closeUserModal);
 
-                    // --- 入力で候補を検索 ---
+                    //スタッフの追加処理
+
+                    // 入力で候補を検索
                     const userInput = document.getElementById("userInput");
 
-                    // 既存のイベントを削除してから登録（保険）
+                    // 既存のイベントを削除してから登録
+                    // userInput（入力欄）をそっくりそのままコピー（cloneNode）して、元の要素と入れ替え。
+                    /*  なぜ必要か: JavaScriptでは、同じ要素に対して addEventListener を何度も実行すると、イベントが重複して登録されてしまう。
+                    要素を新品に置き換えることで、以前に登録された古い input イベントを強制的にリセットしている*/
                     userInput.replaceWith(userInput.cloneNode(true));
                     const newInput = document.getElementById("userInput");
 
+                    //入力監視と準備
+                    //input イベント: キーボード入力だけでなく、コピペなどで文字が変わった瞬間にも反応。
                     newInput.addEventListener("input", async function () {
+                        //入力前後の空白文字を削除し空白のみの入力を無視
                         const q = this.value.trim();
                         const list = document.getElementById("suggestions");
                         list.innerHTML = "";
                         if (q.length < 1) return;
 
+                        //APIリクエスト： /search_user という窓口に対して、入力された文字 q を送り、ユーザー情報を探してくるよう依頼
                         const res = await fetch(
                             `/search_user?q=${encodeURIComponent(q)}`,
                         );
                         const data = await res.json();
 
-                        // 重複除去
+                        // 重複除去したデータを除去
+                        // Set は、重複した値を一切持てないという性質を持ったJavaScriptの特殊なオブジェクト
                         const seen = new Set();
                         const unique = data.filter((u) => {
                             if (seen.has(u.id)) return false;
@@ -1292,30 +1302,33 @@
                             return true;
                         });
 
+                        // 検索ヒットなし：新規追加モード
                         if (unique.length === 0) {
                             const li = document.createElement("li");
                             li.textContent = `"${q}" を新規追加`;
                             li.onclick = async () => {
+                                // APIリクエスト: /add_user に対して、入力された名前 q を送り、新しいユーザーを追加する
                                 const addRes = await fetch("/add_user", {
                                     method: "POST",
                                     headers: {
                                         "Content-Type": "application/json",
                                     },
-                                    body: JSON.stringify({ name: q }),
+                                    body: JSON.stringify({ name: q }), // 入力された名前(q)を送信
                                 });
-                                const newUser = await addRes.json();
-                                newInput.value = newUser.name;
+                                const newUser = await addRes.json(); // 新しいユーザーの情報を受け取る
+                                newInput.value = newUser.name; // 入力欄に新しいユーザーの名前を表示
                                 document.getElementById("userIdHidden").value =
-                                    newUser.id;
-                                list.innerHTML = "";
+                                    newUser.id; // ユーザーIDを隠しフィールドに保存
+                                list.innerHTML = ""; // リストをクリア
                             };
                             list.appendChild(li);
+                            // 検索ヒットあり：選択と重複チェック
                         } else {
                             unique.forEach((u) => {
                                 const li = document.createElement("li");
                                 li.textContent = u.name;
                                 li.onclick = () => {
-                                    // すでに同じユーザーが追加されているか確認
+                                    // すでに同じユーザーが追加されているか確認(重複登録防止)
                                     const exists = window.shiftData[
                                         monthKey
                                     ]?.some((user) => user.userId == u.id);
@@ -1325,7 +1338,7 @@
                                         );
                                         return;
                                     }
-
+                                    // 選択されたユーザ名を表示
                                     newInput.value = u.name;
                                     document.getElementById(
                                         "userIdHidden",
@@ -1337,10 +1350,12 @@
                         }
                     });
 
-                    // --- OKボタンで追加 ---
+                    // 入力チェックとバリデーション
                     document
                         .getElementById("userModalOk")
                         .addEventListener("click", () => {
+                            // userIdHiddenか名前が空の場合、処理を中断　前段で「サジェストからの選択」や
+                            // 「新規登録」が正しく行われ、裏側にIDがセットされていることを確認
                             const userId =
                                 document.getElementById("userIdHidden").value;
                             const name =
@@ -1349,7 +1364,6 @@
                                 return alert(
                                     "候補を選択するか新規追加してください",
                                 );
-
                             // すでに同じユーザーが存在するかチェック
                             const exists = window.shiftData[monthKey]?.some(
                                 (u) => u.userId == userId,
@@ -1360,23 +1374,25 @@
                                 return;
                             }
 
+                            // 月の日数に合わせたカラのシフトを作成
                             const [y, m] = monthKey.split("-").map(Number);
                             const totalDays = daysInMonth(y, m);
                             const newShifts = Array.from(
                                 { length: totalDays },
-                                () => ({ type: "休", work: "" }),
+                                () => ({ type: "休", work: "" }), // "休"でシフトを初期化
                             );
 
+                            メモリへ追加;
                             if (!Array.isArray(window.shiftData[monthKey]))
                                 window.shiftData[monthKey] = [];
                             window.shiftData[monthKey].push({
                                 userId,
                                 name,
-                                shifts: newShifts,
+                                shifts: newShifts, // 先ほど作った"休"の配列をセット
                             });
 
-                            isDirty = true;
-                            saveToLocal();
+                            isDirty = true; // データが変更されたことを示すフラグを立てる
+                            saveToLocal(); // データをローカルストレージ(ブラウザ)に保存
                             renderTable();
 
                             closeUserModal();
@@ -1390,9 +1406,11 @@
                         uploadInput.click();
                     });
 
+                    // JSONファイルを読み込んでシフトデータを丸ごと更新する処理
                     uploadInput.addEventListener("change", (e) => {
                         const file = e.target.files && e.target.files[0];
                         if (!file) return;
+                        // ファイルのMIMEタイプや拡張子をチェックしてJSONファイルかどうかを確認
                         if (
                             !file.type.includes("json") &&
                             !file.name.toLowerCase().endsWith(".json")
@@ -1400,11 +1418,13 @@
                             alert("JSONファイルを選択してください");
                             return;
                         }
+
+                        // ファイルを読み込んでJSONデータをパース
                         const reader = new FileReader();
                         reader.onload = () => {
                             let parsed;
                             try {
-                                parsed = JSON.parse(reader.result);
+                                parsed = JSON.parse(reader.result); // ファイルの内容をJSONとしてパース
                             } catch (err) {
                                 alert("JSONのパースに失敗しました");
                                 return;
@@ -1419,16 +1439,18 @@
                             // ✅ 完全上書き
                             window.shiftData = parsed;
 
-                            // セレクト再構築
+                            // プルダウンを再構築
                             const keys = Object.keys(window.shiftData).sort();
-                            sel.innerHTML = "";
+                            sel.innerHTML = ""; // 既存のオプションをクリア
                             keys.forEach((key) => {
                                 const opt = document.createElement("option");
                                 opt.value = key;
-                                opt.text = key;
+                                opt.text = key; // "2026-05"などの月名
                                 sel.appendChild(opt);
                             });
-                            monthKey = keys[0];
+
+                            // 仕上げ処理
+                            monthKey = keys[0]; // 読み込んだデータの最初の月を選択
                             sel.value = monthKey;
 
                             renderTable();
@@ -1438,6 +1460,7 @@
                         reader.readAsText(file, "utf-8");
                     });
 
+                    // 翌月を追加する処理
                     document
                         .getElementById("addNextMonthBtn")
                         .addEventListener("click", () => {
@@ -1447,7 +1470,8 @@
 
                             // 現在の年月を取得
                             const [y, m] = current.split("-").map(Number);
-                            const nextDate = new Date(y, m); // 翌月
+                            // 翌月　mは0から始まるため、たとえば12月の次に13月を指定すると自動で翌月の1月になる
+                            const nextDate = new Date(y, m);
                             const nextYear = nextDate.getFullYear();
                             const nextMonth = String(
                                 nextDate.getMonth() + 1,
@@ -1462,14 +1486,13 @@
 
                             // 新しい月データを作成（空のシフト）
                             const totalDays = daysInMonth(nextYear, nextMonth);
-                            window.shiftData[nextKey] = [];
-
+                            window.shiftData[nextKey] = []; // 空の配列を作成してシフトデータを保存
                             // select に追加
                             const opt = document.createElement("option");
                             opt.value = nextKey;
                             opt.text = nextKey;
-                            sel.appendChild(opt);
-                            sel.value = nextKey;
+                            sel.appendChild(opt); // プルダウンに翌月を追加
+                            sel.value = nextKey; // 追加した月を選択状態にする
 
                             monthKey = nextKey;
                             isDirty = true;
@@ -1477,6 +1500,7 @@
                             renderTable();
                         });
 
+                    //ブラウザ上で編集したシフトデータを、JSONファイルとしてPCにダウンロードするための処理
                     document
                         .getElementById("downloadBtn")
                         ?.addEventListener("click", () => {
@@ -1484,25 +1508,28 @@
                                 return alert(
                                     "JSONを読み込むか勤務表を作成してください",
                                 );
+                            // シフトデータをJSON形式に変換し、Blobオブジェクトを作成
                             const blob = new Blob(
                                 [JSON.stringify(window.shiftData, null, 2)],
                                 { type: "application/json" },
                             );
                             const a = document.createElement("a");
-                            a.href = URL.createObjectURL(blob);
-                            a.download = "shift_edited.json";
+                            a.href = URL.createObjectURL(blob); // Blobにアクセスするための特別なURLを発行
+                            a.download = "shift_edited.json"; // ダウンロード時のファイル名を指定
                             a.click();
-                            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+                            setTimeout(() => URL.revokeObjectURL(a.href), 1000); // ダウンロード後にURLを破棄してメモリを解放
                         });
 
+                    // ブラウザ上で編集したシフトデータを、ローカルストレージに保存するための処理
                     document
                         .getElementById("saveLocalBtn")
                         ?.addEventListener("click", () => {
                             try {
                                 const payload = {
-                                    data: window.shiftData,
-                                    lastEditedMonth: monthKey,
+                                    data: window.shiftData, // 全てのシフトデータ
+                                    lastEditedMonth: monthKey, // 最後に見ていた月
                                 };
+                                // ローカルストレージにデータを保存
                                 localStorage.setItem(
                                     LOCAL_KEY,
                                     JSON.stringify(payload),
@@ -1514,28 +1541,34 @@
                             }
                         });
 
+                    // ローカルストレージからデータを読み込み、シフトデータを復元するための処理
                     document
                         .getElementById("restoreLocalBtn")
                         ?.addEventListener("click", () => {
                             try {
+                                // ローカルストレージからデータを取得
                                 const raw = localStorage.getItem(LOCAL_KEY);
                                 if (!raw)
                                     return alert(
                                         "ローカル保存データが見つかりません",
                                     );
                                 const localData = JSON.parse(raw);
-                                window.shiftData = localData.data;
+                                // メモリ上へのデータ展開とドロップダウンの更新
+                                window.shiftData = localData.data; // ローカルデータをメモリに展開
                                 const allKeys = Object.keys(
                                     window.shiftData,
-                                ).sort();
-                                sel.innerHTML = "";
+                                ).sort(); // 月リストを作成
+                                sel.innerHTML = ""; // ドロップダウンをクリア
                                 allKeys.forEach((key) => {
                                     const opt =
                                         document.createElement("option");
                                     opt.value = key;
                                     opt.text = key;
-                                    sel.appendChild(opt);
+                                    sel.appendChild(opt); // ドロップダウンを再構築
                                 });
+
+                                /* 前回見ていた月があるか確認後、その月が現在のデータ内にもあるかを確認
+                                なければ、最初の月を選択、あればその月を表示*/
                                 monthKey =
                                     localData.lastEditedMonth &&
                                     allKeys.includes(localData.lastEditedMonth)
@@ -1552,6 +1585,7 @@
                             }
                         });
 
+                    // ローカルデータの削除をする処理
                     document
                         .getElementById("clearLocalBtn")
                         ?.addEventListener("click", () => {
@@ -1565,6 +1599,8 @@
                             setTempStatus("ローカルデータを削除しました");
                         });
 
+                    // 選択された月のシフトを印刷する
+                    // 選択している月"yyyy-mm"をAPI(/shifts/print)に渡して印刷する
                     document
                         .getElementById("printBtn")
                         ?.addEventListener("click", () => {
@@ -1580,6 +1616,7 @@
                             );
                         });
 
+                    // ダッシュボードに遷移
                     document
                         .getElementById("dashboardBtn")
                         ?.addEventListener("click", () => {
@@ -1587,6 +1624,7 @@
                                 "http://127.0.0.1:5000/shifts/dashboard";
                         });
 
+                    // プロジェクト一覧に遷移
                     document
                         .getElementById("projectBtn")
                         ?.addEventListener("click", () => {
@@ -1594,6 +1632,7 @@
                                 "http://127.0.0.1:5000/projects";
                         });
 
+                    // データをサーバーに保存する
                     const saveBtn =
                         document.getElementById("uploadToServerBtn");
                     if (saveBtn) {
@@ -1671,6 +1710,7 @@
                         });
                     }
 
+                    // プロジェクト色の選択変更を監視
                     if (sel) {
                         sel.addEventListener("change", async () => {
                             monthKey = sel.value;
@@ -1679,6 +1719,8 @@
                             renderTable();
                         });
                     }
+
+                    // シフト表の「削除ボタン」と「セル編集（クリック入力）」の2つの機能を引き受けるイベントリスナー
 
                     (function attachTableDelegatedHandler() {
                         const wrapper =
@@ -1689,6 +1731,7 @@
                         wrapper.addEventListener(
                             "click",
                             async function (e) {
+                                // 削除ボタンが押された時
                                 const del = e.target.closest(".deleteBtn");
                                 if (del && wrapper.contains(del)) {
                                     e.stopPropagation();
@@ -1701,6 +1744,7 @@
                                             : null;
                                     const name = person ? person.name : "";
                                     if (
+                                        // 削除確認ダイアログを表示
                                         !confirm(
                                             `社員「${clientNormalize(name)}」を削除しますか？`,
                                         )
@@ -1711,6 +1755,7 @@
                                             window.shiftData[monthKey],
                                         )
                                     )
+                                        // 削除対象の行を配列から削除
                                         window.shiftData[monthKey].splice(r, 1);
                                     isDirty = true;
                                     try {
@@ -1724,6 +1769,7 @@
                                     return;
                                 }
 
+                                // 勤務セル編集（クリック入力）の処理
                                 const td = e.target.closest(
                                     "td[data-row][data-day]",
                                 );
@@ -1778,7 +1824,7 @@
                                         work: newWork,
                                         project: selectedProject,
                                     };
-                                    isDirty = true; // ← ここを追加：ローカル変更があることを示す
+                                    isDirty = true;
                                     saveToLocal();
                                     renderTable();
                                 }
@@ -1791,11 +1837,11 @@
                     renderTable();
                 }); // DOMContentLoaded end
 
-                // focus reload: re-fetch current month shifts from server
+                //ブラウザのタブを切り替えて戻ってきた瞬間に、サーバーの最新データと手元のデータを（マージ）させる
                 window.addEventListener("focus", async () => {
                     try {
                         if (isDirty) {
-                            // ← 追加：未保存のローカル変更があればサーバー再フェッチしない
+                            // 未保存のローカル変更があればサーバー再フェッチしない
                             console.log(
                                 "FOCUS: skip refetch because of local dirty edits",
                             );
@@ -1811,7 +1857,7 @@
                             const serverData = await r.json(); // [{name, shifts: [...]}, ...]
                             const currentData = window.shiftData[current] || [];
 
-                            // 名前キーでインデックス化
+                            // 社員の名前でインデックス化
                             const byName = new Map(
                                 currentData.map((p) => [p.name || "", p]),
                             );
@@ -1830,8 +1876,8 @@
                                 const merged = Array.from(
                                     { length: maxLen },
                                     (_, i) => {
-                                        const s = sp.shifts?.[i] || {};
-                                        const l = local.shifts?.[i] || {};
+                                        const s = sp.shifts?.[i] || {}; // サーバーのデータ
+                                        const l = local.shifts?.[i] || {}; // ローカルのデータ
                                         return {
                                             type:
                                                 s.type !== undefined &&
