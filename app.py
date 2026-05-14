@@ -10,7 +10,6 @@ from pyfladesk import init_gui
 from weasyprint import HTML
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
-
 DB_PATH = os.path.join(app.root_path, "data", "shifts.db")
 
 
@@ -447,8 +446,4 @@ def add_user():
     return jsonify({"id": cur.lastrowid, "name": name})
 
 
-if __name__ == "__main__":
-    app.debug = False
-
-    init_gui(app)
-# app.run(host="127.0.0.1", port=5000, use_reloader=False)
+app.run(host="127.0.0.1", port=5000, use_reloader=False)
