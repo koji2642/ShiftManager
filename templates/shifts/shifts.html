@@ -626,7 +626,6 @@
         <script>
             //シフト表に現在の月のシフトを表示するための関数
             (function () {
-                // --- ヘルパー ---
                 function getCurrentMonthKey() {
                     const now = new Date();
                     const year = now.getFullYear();
@@ -634,11 +633,11 @@
                     return `${year}-${month}`;
                 }
 
-                //その月が何日終わりなのかを判定
+                //その月が何日終わりなのかを判定する関数
                 function daysInMonth(year, month) {
                     return new Date(year, month, 0).getDate();
                 }
-                //HTML内で特別な意味を持つ文字を安全な文字列（実体参照）に変換する
+                //HTML内で特別な意味を持つ文字を安全な文字列（実体参照）に変換する関数
                 function escapeHtml(str) {
                     if (str === undefined || str === null) return "";
                     return String(str)
@@ -648,19 +647,18 @@
                         .replace(/"/g, "&quot;")
                         .replace(/'/g, "&#39;");
                 }
-                //改行コードもスペースに変換　表示崩れ防止のため
+                //改行コードもスペースに変換する関数　表示崩れ防止のため
                 function escapeAttr(str) {
                     return escapeHtml(str).replace(/\n/g, " ");
                 }
-
-                //ユーザーが入力した文字列から目に見えない不要な制御文字（ゼロ幅文字やBOM）を削除 入力された文字を綺麗にする
+                //ユーザーが入力した文字列から目に見えない不要な制御文字（ゼロ幅文字やBOM）を削除 入力された文字を綺麗にする関数
                 function clientNormalize(s) {
                     if (s === undefined || s === null) return "";
                     return String(s)
                         .replace(/[\u200b\u200c\u200d\uFEFF]/g, "")
                         .trim();
                 }
-                //プロジェクト表を取得
+                //プロジェクト表を取得する関数
                 async function fetchProjectList() {
                     try {
                         const res = await fetch("/api/projects");
@@ -671,7 +669,7 @@
                         return [];
                     }
                 }
-                //新規入力シフトにプロジェクトを設定
+                //新規入力シフトにプロジェクトを設定する関数
                 async function selectProjectDialog(projects, currentProject) {
                     return new Promise((resolve) => {
                         const overlay = document.createElement("div");
@@ -742,7 +740,7 @@
                 }
 
             
-                //ブラウザへの保存処理
+                //ブラウザへの保存処理をする関数
                 
                 const LOCAL_KEY = "shift_manager_data_v1";
                 //現在編集している「年月のキー」を保持する変数
@@ -777,7 +775,7 @@
                     }
                 }
                 
-                //保存時のステータス表示
+                //保存時のステータス表示をする関数
                 function setTempStatus(msg, ms = 2000) {
                     let el = document.getElementById("tempStatus");
                     if (!el) {
@@ -806,7 +804,7 @@
                         _tempStatusTimer = null;
                     }, ms);
                 }
-                //最終更新日を取得
+                //最終更新日を取得する関数
                 function updateVersionDisplay(isoString) {
                     const el = document.getElementById("versionInfo");
                     if (!el || !isoString) return;
@@ -822,7 +820,6 @@
                 }
 
                 // --- 描画ロジック ---
-
                 //現在の月のシフトデータからスタッフごとの休暇や夜勤の回数を集計し、画面にテーブル（表）として描画する関数
                 function renderLeaveSummary() {
                     const container = document.getElementById(
@@ -973,6 +970,7 @@
                             else if (type === "非番") cls = "shift-off-duty";
                             else if (type === "重要") cls = "shift-important";
 
+                            //プロジェクトのドット表示
                             const rawProject = (rawShift.project || "")
                                 .toString()
                                 .trim();
@@ -1001,6 +999,8 @@
 
                     renderLeaveSummary();
                 }
+
+                //現場表の生成
                 let projectColorMap = {};
 
                 async function renderProjectSummary() {
@@ -1070,9 +1070,12 @@
 
                 // --- 初期化 ---
                 window.addEventListener("DOMContentLoaded", async () => {
+
+                    //月ドロップダウンをリセットし空にする
                     sel = document.getElementById("monthSelect");
                     if (sel) sel.innerHTML = "";
 
+                    //消してもいいかも
                     // API_BASE (Electron環境対応)
                     if (
                         window.electronEnv &&
@@ -1088,7 +1091,7 @@
                         window.API_BASE = "http://127.0.0.1:5000";
                     }
 
-                    // /load-months
+                    // /load-months どの月のデータが存在するか
                     try {
                         const resMonths = await fetch(
                             `${window.API_BASE}/load-months`,
@@ -1103,6 +1106,7 @@
                         }
                     } catch (e) {
                         console.error("load-months failed", e);
+                        //[serverMonths] (月のリスト)
                         serverMonths = [];
                     }
 
@@ -1110,16 +1114,19 @@
                     const validMonths = [];
                     const monthKeys = (serverMonths || []).sort();
                     if (monthKeys.length > 0 && sel) {
+                        //.map() で1ヶ月ずつ取り出し、keyへ代入
                         const promises = monthKeys.map(async (key) => {
+                            //keyを元に各人のシフトを取得
                             try {
                                 const r = await fetch(
                                     `${window.API_BASE}/load-shifts?month=${encodeURIComponent(key)}`,
                                 );
                                 if (!r.ok) return null;
                                 const data = await r.json();
-                                return Array.isArray(data) && data.length > 0
+                                //データの整合チェック
+                                return Array.isArray(data) && data.length > 0//リストの配列の形をしているか、またデータが空でないか
                                     ? { key, data }
-                                    : null;
+                                    : null;//合格の場合key、dataに代入、不合格の場合nullを代入
                             } catch (err) {
                                 console.warn(
                                     "load-shifts failed for",
@@ -1129,13 +1136,18 @@
                                 return null;
                             }
                         });
+                        //取得したシフトデータの整理
                         const results = await Promise.all(promises);
                         results.forEach((item) => {
+                            //null等の月は弾く
                             if (!item) return;
+                            //前段で取得した月(item.key)と、シフト(item.data)を取り出しkey,dataに代入。
                             const key = item.key;
                             const data = item.data;
+                            //keyを元にwindow.shiftDataにシフトデータをまとめる
                             window.shiftData = window.shiftData || {};
                             window.shiftData[key] = data;
+                            //画面上のプルダウンメニューに、その月の選択肢を追加
                             const opt = document.createElement("option");
                             opt.value = key;
                             opt.text = key;
@@ -1144,7 +1156,7 @@
                         });
                     }
 
-                    // ローカルがあればマージ優先
+                    // 元々ローカル(ブラウザ)にデータがあれば取得　ローカルがあればマージ直前に編集したものとマージ
                     const local = (function loadFromLocal() {
                         try {
                             const raw = localStorage.getItem(LOCAL_KEY);
@@ -1155,12 +1167,18 @@
                             return null;
                         }
                     })();
+
+                    //ローカル（自分のブラウザ）に保存されている下書きとサーバーから取得したデータを合流させ、最終的にどの月を表示するかを決定する
+                    //データの合流（マージ）
                     if (local && local.data) {
                         window.shiftData = Object.assign(
                             {},
                             window.shiftData || {},
                             local.data,
                         );
+
+                        //プルダウンの再構築
+                        //合流が終わったら、一度プルダウンをリセットして、全データ（サーバー＋ローカル）から月のリストを五十音（日付）順に並べ直して表示
                         const allKeys = Object.keys(window.shiftData).sort();
                         sel.innerHTML = "";
                         allKeys.forEach((k) => {
@@ -1169,19 +1187,23 @@
                             o.text = k;
                             sel.appendChild(o);
                         });
+
+                        //どの月を最初に表示するかの判定
                         monthKey =
+                            //ローカルに最後にこの月を触ったという記録（local.lastEditedMonth）があれば、それを開く
                             local.lastEditedMonth &&
                             allKeys.includes(local.lastEditedMonth)
                                 ? local.lastEditedMonth
                                 : allKeys[0] || getCurrentMonthKey();
                     } else {
+                        //記録がなければ、現在の月（getCurrentMonthKey）を探す
                         monthKey = validMonths.includes(getCurrentMonthKey())
                             ? getCurrentMonthKey()
                             : validMonths[0] || getCurrentMonthKey();
                         if (sel) sel.value = monthKey;
                     }
 
-                    // セレクト初期値（存在しない場合は追加）
+                    //どちらもなければ、リストの一番上の月を表示
                     if (!sel.querySelector(`option[value="${monthKey}"]`)) {
                         const opt = document.createElement("option");
                         opt.value = monthKey;
@@ -1190,7 +1212,7 @@
                     }
                     sel.value = monthKey;
 
-                    // 最終更新取得
+                    // 最終更新日時取得
                     try {
                         const metaRes = await fetch(
                             `${window.API_BASE}/shifts-meta`,
@@ -1210,12 +1232,15 @@
                     }
 
                     // --- モーダル開閉ヘルパー ---
+                    //モーダルの表示
                     function openUserModal() {
                         const overlay =
                             document.getElementById("userModalOverlay");
                         const modal = document.getElementById("userModal");
+                        //CSSで「通常は非表示、.show クラスがついたら表示」という設定になっている これによって、ふわっとモーダルが現れる
                         overlay.classList.add("show");
                         modal.classList.add("show");
+                        //各入力の初期化
                         document.getElementById("userInput").value = "";
                         document.getElementById("userIdHidden").value = "";
                         document.getElementById("suggestions").innerHTML = "";
@@ -1230,7 +1255,7 @@
                             .classList.remove("show");
                     }
 
-                    // --- イベント登録 ---
+                    // --- 各イベントのフラグ(ボタン) ---
                     document
                         .getElementById("addPersonBtn")
                         .addEventListener("click", openUserModal);
