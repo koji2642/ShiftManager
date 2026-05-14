@@ -648,11 +648,12 @@
                         .replace(/"/g, "&quot;")
                         .replace(/'/g, "&#39;");
                 }
+                //改行コードもスペースに変換　表示崩れ防止のため
                 function escapeAttr(str) {
                     return escapeHtml(str).replace(/\n/g, " ");
                 }
 
-                // client-side normalize: remove zero-width / BOM and trim
+                //ユーザーが入力した文字列から目に見えない不要な制御文字（ゼロ幅文字やBOM）を削除 入力された文字を綺麗にする
                 function clientNormalize(s) {
                     if (s === undefined || s === null) return "";
                     return String(s)
@@ -740,12 +741,21 @@
                     });
                 }
 
+            
+                //ブラウザへの保存処理
+                
                 const LOCAL_KEY = "shift_manager_data_v1";
+                //現在編集している「年月のキー」を保持する変数
                 let monthKey = null;
+                //すでにデータが存在すればそれを使い、なければ空のオブジェクト {} を作成して、シフトデータをメモリ上に保持
                 window.shiftData = window.shiftData || {};
+                //「保存されていない変更があるか」を表すフラグ(編集フラグ) 変更があるとtrue 
                 let isDirty = false;
+                //サーバー側に保存されている「データの存在する年月」の一覧を管理する配列
                 let serverMonths = [];
+                //現在「選択（select）されている要素」やデータを一時的に入れておく変数
                 let sel = null;
+                //「保存しました」といった画面上のメッセージを、数秒後に自動で消すためのタイマー
                 let _tempStatusTimer = null;
 
                 // safe fallback for saveToLocal
