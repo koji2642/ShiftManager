@@ -776,7 +776,8 @@
                         return true;
                     }
                 }
-
+                
+                //保存時のステータス表示
                 function setTempStatus(msg, ms = 2000) {
                     let el = document.getElementById("tempStatus");
                     if (!el) {
@@ -821,6 +822,8 @@
                 }
 
                 // --- 描画ロジック ---
+
+                //現在の月のシフトデータからスタッフごとの休暇や夜勤の回数を集計し、画面にテーブル（表）として描画する関数
                 function renderLeaveSummary() {
                     const container = document.getElementById(
                         "leaveTableContainer",
@@ -853,7 +856,8 @@
                         const nameTd = document.createElement("td");
                         nameTd.style.border = "1px solid #ccc";
                         nameTd.style.padding = "4px";
-                        nameTd.textContent = clientNormalize(person.name);
+                        nameTd.textContent
+                            = clientNormalize(person.name);
                         tr.appendChild(nameTd);
 
                         let tokkyu = 0,
@@ -891,8 +895,11 @@
                     container.appendChild(document.createElement("br"));
                     container.appendChild(table);
                 }
-
+                
+                //「シフト表（カレンダー）」を画面に生成・描画する関数です。
                 function renderTable() {
+
+                    //シフトデータや選択月（monthKey）の存在をチェック
                     if (!window.shiftData || !monthKey) return;
                     const data = window.shiftData[monthKey];
                     if (!Array.isArray(data)) {
@@ -900,13 +907,17 @@
                         return;
                     }
 
+                    //曜日、日付欄生成
+                    
                     const [year, month] = monthKey.split("-").map(Number);
                     const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+                    //daysInMonth関数でその月の日数、曜日を割り出す
                     const totalDays = daysInMonth(year, month);
                     const thead = document.querySelector("#shiftTable thead");
                     const tbody = document.querySelector("#shiftTable tbody");
                     if (!thead || !tbody) return;
 
+                    //1行目に「曜日（日、月、火…）」、2行目に「日付（1、2、3…）」を並べたHTMLを動的に組み立て
                     let headRow1 = "<tr><th class='name' rowspan='2'>名前</th>";
                     let headRow2 = "<tr>";
                     for (let d = 1; d <= totalDays; d++) {
@@ -915,24 +926,33 @@
                         headRow1 += `<th>${day}</th>`;
                         headRow2 += `<th>${d}</th>`;
                     }
+
+                    //人の削除ボタン生成
                     headRow1 += `<th rowspan="2">削除</th></tr>`;
                     headRow2 += "</tr>";
                     thead.innerHTML = headRow1 + headRow2;
 
+                    //スタッフごとのシフト行作成
                     let bodyHTML = "";
                     data.forEach((person, rowIndex) => {
+
+                        //clientNormalizeを挟むことで、データに「目に見えない空白」などが混入していても、正しく文字を判定できるようにしている
                         const nameSafe = escapeHtml(
                             clientNormalize(person.name),
                         );
+                        //各スタッフの1日〜月末までのシフトをループ処理し、セル（<td>）を生成
                         bodyHTML += "<tr>";
                         bodyHTML += `<td class="name" style="font-size: 16px;">${nameSafe}</td>`;
                         for (let d = 0; d < totalDays; d++) {
+                            //対象のスタッフ（person）の指定された日（d）のシフトデータが存在するかをチェックし、存在しない場合は安全な初期値を代入する
                             const rawShift =
-                                person.shifts && person.shifts[d]
-                                    ? person.shifts[d]
-                                    : { type: "休", work: "", project: "" };
-                            const type = clientNormalize(rawShift.type) || "休";
+                                person.shifts && person.shifts[d]//シフトデータがあるか？
+                                    ? person.shifts[d] //あればそのデータをそのまま使う
+                                    : { type: "休", work: "", project: "" }; //なければ"休"及び""で埋める
+                            const type = clientNormalize(rawShift.type) || "休"; 
                             const work = clientNormalize(rawShift.work) || "";
+
+                            //勤務の振り分け
                             let cls = "";
                             if (type === "所内") cls = "office";
                             if (type === "外勤") cls = "outside";
